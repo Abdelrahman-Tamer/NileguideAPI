@@ -12,52 +12,23 @@ namespace NileGuideApi.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email).IsUnique();
+                .HasQueryFilter(u => u.DeletedAt == null);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
 
             modelBuilder.Entity<PasswordResetToken>()
-                .HasIndex(p => p.UserId);
+                .HasIndex(x => x.TokenHash);
 
             modelBuilder.Entity<PasswordResetToken>()
-                .HasIndex(p => p.TokenHash);
-
-            // Soft delete filter for User
-            modelBuilder.Entity<User>().HasQueryFilter(u => u.DeletedAt == null);
-
-            // Configure relationship as optional to fix warning
-            modelBuilder.Entity<PasswordResetToken>()
-                .HasOne(p => p.User)
+                .HasOne(x => x.User)
                 .WithMany()
-                .HasForeignKey(p => p.UserId)
+                .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // Optional: Filter for PasswordResetToken based on User's DeletedAt
-            modelBuilder.Entity<PasswordResetToken>().HasQueryFilter(p => p.User!.DeletedAt == null);
-        }
-
-        public override int SaveChanges()
-        {
-            UpdateTimestamps();
-            return base.SaveChanges();
-        }
-
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            UpdateTimestamps();
-            return await base.SaveChangesAsync(cancellationToken);
-        }
-
-        private void UpdateTimestamps()
-        {
-            var entries = ChangeTracker.Entries<User>().Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-            foreach (var entry in entries)
-            {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
-                if (entry.State == EntityState.Added)
-                {
-                    entry.Entity.CreatedAt = DateTime.UtcNow;
-                }
-            }
         }
     }
 }
