@@ -5,26 +5,27 @@ namespace NileGuideApi.Validators
 {
     public class RegisterDtoValidator : AbstractValidator<RegisterDto>
     {
+        private const string PasswordRegex = @"^(?=.*[A-Za-z])(?=.*\d).{8,}$";
+
         public RegisterDtoValidator()
         {
+            RuleFor(x => x.FullName)
+                .NotEmpty().WithMessage("FullName is required")
+                .MinimumLength(2).WithMessage("FullName must be at least 2 characters")
+                .MaximumLength(150).WithMessage("FullName must be at most 150 characters");
+
             RuleFor(x => x.Email)
                 .NotEmpty().WithMessage("Email is required")
-                .EmailAddress().WithMessage("Invalid email format");
+                .EmailAddress().WithMessage("Email format is invalid")
+                .MaximumLength(255).WithMessage("Email must be at most 255 characters");
+
+            RuleFor(x => x.Nationality)
+                .NotEmpty().WithMessage("Nationality is required")
+                .MaximumLength(100).WithMessage("Nationality must be at most 100 characters");
 
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage("Password is required")
-                .MinimumLength(8).WithMessage("Password must be at least 8 characters")
-                .Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter")
-                .Matches(@"[a-z]").WithMessage("Password must contain at least one lowercase letter")
-                .Matches(@"[0-9]").WithMessage("Password must contain at least one digit")
-                .Matches(@"[\W_]").WithMessage("Password must contain at least one special character (!@#$%^&*)");
-
-            RuleFor(x => x.FullName)
-                .NotEmpty().WithMessage("Full name is required")
-                .MinimumLength(3).WithMessage("Full name must be at least 3 characters");
-
-            RuleFor(x => x.Nationality)
-                .NotEmpty().WithMessage("Nationality is required");
+                .Matches(PasswordRegex).WithMessage("Password must be at least 8 characters and include letters and numbers");
         }
     }
 }
