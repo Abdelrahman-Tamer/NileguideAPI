@@ -91,7 +91,7 @@ namespace NileGuideApi.Controllers
             if (user == null)
                 return Unauthorized(new { message = "User not found" });
 
-            // اقفل على blocked/deleted
+            // if blocked/deleted
             if (!user.IsActive || user.DeletedAt != null)
                 return Unauthorized(new { message = "Invalid token" });
 
@@ -112,7 +112,7 @@ namespace NileGuideApi.Controllers
             var email = (dto.Email ?? "").Trim().ToLowerInvariant();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            // Always OK (no enumeration)
+            
             if (user == null || !user.IsActive || user.DeletedAt != null)
                 return Ok(new { message = "If the email exists, a reset code was sent." });
 
@@ -175,7 +175,7 @@ namespace NileGuideApi.Controllers
                 return BadRequest(new { message = "Invalid code" });
             }
 
-            // نجاح: ما تزودش AttemptCount
+            // AttemptCount
             return Ok(new { message = "Code is valid" });
         }
 
@@ -207,7 +207,6 @@ namespace NileGuideApi.Controllers
                 return BadRequest(new { message = "Invalid code" });
             }
 
-            // منع نفس الباسورد القديم
             if (BCrypt.Net.BCrypt.Verify(dto.NewPassword, user.PasswordHash))
                 return BadRequest(new { message = "New password cannot be the same as the old password" });
 
