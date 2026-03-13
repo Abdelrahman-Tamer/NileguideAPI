@@ -121,12 +121,27 @@ namespace NileGuideApi.Controllers
                 .Select(x => x.Email)
                 .ToListAsync();
 
+            if (subscribers.Count == 0)
+            {
+                return Ok(new
+                {
+                    totalSubscribers = 0,
+                    sentCount = 0,
+                    failedCount = 0
+                });
+            }
+
             var emailContent = _emailTemplateService.BuildNewsletterEmail(dto.Subject, dto.Body);
             var sentCount = 0;
             var failedCount = 0;
+            const int maxParallelSends = 5;
 
-            foreach (var email in subscribers)
+            using var throttler = new SemaphoreSlim(maxParallelSends);
+
+            var sendTasks = subscribers.Select(async email =>
             {
+                await throttler.WaitAsync(HttpContext.RequestAborted);
+
                 try
                 {
                     await _emailSender.SendEmailAsync(
@@ -134,14 +149,21 @@ namespace NileGuideApi.Controllers
                         dto.Subject,
                         emailContent.PlainTextBody,
                         emailContent.HtmlBody);
-                    sentCount++;
+
+                    Interlocked.Increment(ref sentCount);
                 }
                 catch (Exception ex)
                 {
-                    failedCount++;
+                    Interlocked.Increment(ref failedCount);
                     _logger.LogError(ex, "Failed to send newsletter to {Email}", email);
                 }
-            }
+                finally
+                {
+                    throttler.Release();
+                }
+            });
+
+            await Task.WhenAll(sendTasks);
 
             return Ok(new
             {

@@ -336,6 +336,7 @@ namespace NileGuideApi.Controllers
             token.UsedAt = DateTime.UtcNow;
             token.LastAttemptAt = DateTime.UtcNow;
 
+            await RevokeActiveRefreshTokensAsync(user.Id, "Password reset");
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Password updated" });
@@ -399,6 +400,19 @@ namespace NileGuideApi.Controllers
             latest.AttemptCount += 1;
             latest.LastAttemptAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+        }
+
+        private async Task RevokeActiveRefreshTokensAsync(int userId, string? revokedByIp)
+        {
+            var now = DateTime.UtcNow;
+
+            var activeRefreshTokens = await _context.RefreshTokens
+                .IgnoreQueryFilters()
+                .Where(x => x.UserId == userId && x.RevokedAt == null && x.ExpiresAt > now)
+                .ToListAsync();
+
+            foreach (var refreshToken in activeRefreshTokens)
+                RevokeRefreshToken(refreshToken, revokedByIp);
         }
 
         private AuthTokenResponseDto BuildAuthResponse(

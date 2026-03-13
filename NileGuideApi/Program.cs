@@ -15,9 +15,13 @@ using System.Threading.RateLimiting;
 // Build the host and register all API dependencies here.
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing");
+
 // The main EF Core context for users, reset tokens, and newsletter subscribers.
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    opt.UseSqlServer(connectionString));
 
 // Trust proxy headers so redirects, auth, and rate limiting see the real client address.
 builder.Services.Configure<ForwardedHeadersOptions>(opt =>
@@ -35,7 +39,8 @@ builder.Services.AddCors(opt =>
         p.WithOrigins(
             "http://localhost:4200",
             "http://127.0.0.1:4200",
-            "https://nileguide.online"
+            "https://nileguide.online",
+            "https://www.nileguide.online"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -173,7 +178,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseRouting();
 app.UseCors("Frontend");
 
 // Apply throttling before auth endpoints execute controller logic.

@@ -20,8 +20,9 @@ namespace NileGuideApi.Data
                 .AddEnvironmentVariables()
                 .Build();
 
-            var cs = config.GetConnectionString("DefaultConnection")
-                     ?? throw new InvalidOperationException("DefaultConnection missing");
+            var cs = config.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(cs))
+                throw new InvalidOperationException("DefaultConnection missing");
 
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
             optionsBuilder.UseSqlServer(cs);
