@@ -25,33 +25,6 @@ namespace NileGuideApi.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("NileGuideApi.Models.NewsletterSubscriber", b =>
-                {
-                    b.Property<int>("NewsletterID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NewsletterID"));
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(320)
-                        .HasColumnType("nvarchar(320)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("SubscribedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("NewsletterID");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("NewsletterSubscribers", (string)null);
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.PasswordResetToken", b =>
                 {
                     b.Property<int>("Id")
