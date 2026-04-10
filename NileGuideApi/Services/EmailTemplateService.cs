@@ -25,116 +25,19 @@ namespace NileGuideApi.Services
         public EmailTemplateContent BuildPasswordResetCodeEmail(string code, TimeSpan expiresIn)
         {
             var projectUrl = GetProjectUrl();
-            var safeCode = HtmlEncoder.Default.Encode(code);
             var expiryMinutes = Math.Max(1, (int)Math.Round(expiresIn.TotalMinutes));
-
-            var introHtml = """
-                <p style="margin:0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:16px;line-height:28px;color:#f5efe1;">
-                  Use this code to reset your password.
-                </p>
-                """;
-
-            var highlightHtml = $$"""
-                <tr>
-                  <td style="padding:8px 32px 12px 32px;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:{{SurfaceBackground}};border:1px solid {{Border}};border-radius:14px;">
-                      <tr>
-                        <td align="center" style="padding:24px 20px 12px 20px;">
-                          <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:12px;line-height:18px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:{{Gold}};">Verification code</div>
-                          <div style="margin-top:10px;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:34px;line-height:40px;font-weight:800;letter-spacing:8px;color:{{Heading}};">{{safeCode}}</div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding:0 20px 24px 20px;">
-                          <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:14px;line-height:22px;color:{{TextMuted}};">
-                            This code expires in {{expiryMinutes}} minutes.
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                """;
-
-            var contentHtml = """
-                <p style="margin:0 0 16px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:26px;color:#c7ba9a;">
-                  If you did not request this, you can ignore this email.
-                </p>
-                """;
-
-            var supportEmail = GetSupportEmail();
+            var safeCode = HtmlEncoder.Default.Encode(code);
+            var safeProjectUrl = HtmlEncoder.Default.Encode(projectUrl);
+            var safePreviewText = HtmlEncoder.Default.Encode($"Your NileGuide verification code is {code}.");
 
             var plainTextBody =
                 $"NileGuide Password Reset Code{Environment.NewLine}{Environment.NewLine}" +
                 $"Use this code to reset your password:{Environment.NewLine}{Environment.NewLine}" +
                 $"{code}{Environment.NewLine}{Environment.NewLine}" +
                 $"This code expires in {expiryMinutes} minutes.{Environment.NewLine}{Environment.NewLine}" +
-                $"If you did not request this, you can ignore this email.{Environment.NewLine}{Environment.NewLine}" +
-                $"{supportEmail}{Environment.NewLine}" +
+                $"If you did not request this, ignore this email.{Environment.NewLine}{Environment.NewLine}" +
                 $"Open NileGuide: {projectUrl}";
-
-            return BuildLayout(
-                previewText: $"Your NileGuide verification code is {code}.",
-                eyebrow: "Account Security",
-                title: "Reset your password",
-                introHtml: introHtml,
-                highlightHtml: highlightHtml,
-                contentHtml: contentHtml,
-                ctaText: "Open NileGuide",
-                ctaUrl: projectUrl,
-                footerNote: "This mailbox is for transactional messages only. Keep your verification code private.",
-                plainTextBody: plainTextBody);
-        }
-
-        public EmailTemplateContent BuildNewsletterEmail(string subject, string body)
-        {
-            var projectUrl = GetProjectUrl();
-            var introHtml = string.Empty;
-            var supportEmail = GetSupportEmail();
-
-            var contentHtml = BuildParagraphs(body);
-
-            var plainTextBody =
-                $"{subject}{Environment.NewLine}{Environment.NewLine}" +
-                $"{NormalizeLineEndings(body)}{Environment.NewLine}{Environment.NewLine}" +
-                $"{supportEmail}{Environment.NewLine}" +
-                $"Explore more on NileGuide: {projectUrl}{Environment.NewLine}{Environment.NewLine}" +
-                "You are receiving this email because you subscribed to the NileGuide newsletter.";
-
-            return BuildLayout(
-                previewText: subject,
-                eyebrow: "Newsletter",
-                title: subject,
-                introHtml: introHtml,
-                highlightHtml: string.Empty,
-                contentHtml: contentHtml,
-                ctaText: "Explore NileGuide",
-                ctaUrl: projectUrl,
-                footerNote: "You are receiving this email because you subscribed to NileGuide updates.",
-                plainTextBody: plainTextBody);
-        }
-
-        private EmailTemplateContent BuildLayout(
-            string previewText,
-            string eyebrow,
-            string title,
-            string introHtml,
-            string highlightHtml,
-            string contentHtml,
-            string ctaText,
-            string ctaUrl,
-            string footerNote,
-            string plainTextBody)
-        {
-            var safePreviewText = HtmlEncoder.Default.Encode(previewText);
-            var safeEyebrow = HtmlEncoder.Default.Encode(eyebrow);
-            var safeTitle = HtmlEncoder.Default.Encode(title);
-            var safeCtaText = HtmlEncoder.Default.Encode(ctaText);
-            var safeCtaUrl = HtmlEncoder.Default.Encode(ctaUrl);
-            var safeFooterNote = HtmlEncoder.Default.Encode(footerNote);
-            var supportEmail = HtmlEncoder.Default.Encode(GetSupportEmail());
-            var year = DateTime.UtcNow.Year;
-
+            
             var htmlBody = $$"""
                 <!DOCTYPE html>
                 <html lang="en">
@@ -142,52 +45,117 @@ namespace NileGuideApi.Services
                   <meta charset="utf-8" />
                   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                   <meta http-equiv="x-ua-compatible" content="ie=edge" />
-                  <title>{{safeTitle}}</title>
+                  <title>Reset your password</title>
+                  <style>
+                    @media only screen and (max-width: 600px) {
+                      .email-shell {
+                        border-radius: 20px !important;
+                      }
+
+                      .email-content {
+                        padding: 28px 18px 36px 18px !important;
+                      }
+
+                      .email-column {
+                        max-width: 100% !important;
+                      }
+
+                      .email-title {
+                        font-size: 24px !important;
+                        line-height: 30px !important;
+                      }
+
+                      .email-copy {
+                        font-size: 14px !important;
+                        line-height: 24px !important;
+                        padding-bottom: 22px !important;
+                      }
+
+                      .code-panel {
+                        padding: 18px 16px 18px 16px !important;
+                      }
+
+                      .code-value {
+                        font-size: 32px !important;
+                        line-height: 38px !important;
+                        letter-spacing: 4px !important;
+                      }
+
+                      .cta-button {
+                        display: inline-block !important;
+                        width: auto !important;
+                      }
+                    }
+                  </style>
                 </head>
-                <body style="margin:0;padding:0;background-color:{{OuterBackground}};">
+                <body style="margin:0;padding:0;background-color:#0f0d0a;">
                   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
                     {{safePreviewText}}
                   </div>
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;padding:28px 12px;background-color:{{OuterBackground}};">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;padding:32px 12px;background-color:#0f0d0a;">
                     <tr>
                       <td align="center">
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;background-color:{{CardBackground}};border:1px solid {{Border}};border-radius:22px;overflow:hidden;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-shell" style="max-width:820px;background-color:#12100c;border-radius:28px;overflow:hidden;">
                           <tr>
-                            <td style="padding:16px 32px;background-color:#000000;border-bottom:1px solid {{Border}};">
-                              <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:20px;line-height:26px;font-weight:800;letter-spacing:0.3em;color:{{Gold}};">
-                                NILEGUIDE
+                            <td align="center" style="padding:22px 24px 0 24px;">
+                              <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:14px;line-height:18px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{{Gold}};">
+                                {{BrandName}}
                               </div>
                             </td>
                           </tr>
                           <tr>
-                            <td style="padding:32px 32px 12px 32px;">
-                              <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:12px;line-height:18px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:{{Gold}};">
-                                {{safeEyebrow}}
-                              </div>
-                              <h1 style="margin:12px 0 16px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:32px;line-height:40px;font-weight:800;color:{{Heading}};">{{safeTitle}}</h1>
-                              {{introHtml}}
-                            </td>
-                          </tr>
-                          {{highlightHtml}}
-                          <tr>
-                            <td style="padding:8px 32px 8px 32px;">
-                              {{contentHtml}}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style="padding:12px 32px 18px 32px;">
-                              <a href="{{safeCtaUrl}}" style="display:inline-block;padding:14px 24px;background-color:{{Gold}};border-radius:12px;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:22px;font-weight:800;color:#111111;text-decoration:none;">
-                                {{safeCtaText}}
-                              </a>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style="padding:0 32px 32px 32px;">
-                              <div style="padding-top:18px;border-top:1px solid {{Divider}};font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:13px;line-height:22px;color:{{TextMuted}};">
-                                {{safeFooterNote}}<br />
-                                {{supportEmail}}<br />
-                                (c) {{year}} NileGuide. All rights reserved.
-                              </div>
+                            <td class="email-content" style="padding:42px 24px 56px 24px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-column" style="max-width:346px;margin:0 auto;">
+                                <tr>
+                                  <td class="email-title" style="padding:0 0 12px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:30px;line-height:38px;font-weight:800;color:{{Heading}};">
+                                    Reset your password
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td class="email-copy" style="padding:0 0 28px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:30px;color:{{TextPrimary}};">
+                                    Use this code to reset your password.
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td>
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="code-panel" style="background-color:#2b2821;border-radius:6px;">
+                                      <tr>
+                                        <td style="padding:22px 24px 20px 24px;">
+                                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                            <tr>
+                                              <td style="padding:0 0 16px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:11px;line-height:16px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:{{Gold}};">
+                                                Verification code
+                                              </td>
+                                            </tr>
+                                            <tr>
+                                              <td class="code-value" style="font-family:'Courier New',Consolas,monospace;font-size:36px;line-height:42px;font-weight:800;letter-spacing:6px;white-space:nowrap;color:#ffffff;user-select:all;-webkit-user-select:all;">
+                                                {{safeCode}}
+                                              </td>
+                                            </tr>
+                                            <tr>
+                                              <td colspan="2" style="padding:18px 0 0 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:10px;line-height:16px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#d8c79d;">
+                                                &#9716;&nbsp; Expires in {{expiryMinutes}} minutes
+                                              </td>
+                                            </tr>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="padding:30px 0 20px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:28px;color:{{TextPrimary}};">
+                                    If this wasn't you, ignore this email.
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td>
+                                    <a href="{{safeProjectUrl}}" class="cta-button" style="display:inline-block;padding:16px 22px;background-color:#f6bf32;border-radius:12px;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:22px;font-weight:800;color:#111111;text-decoration:none;">
+                                      Explore NileGuide&nbsp;&nbsp;&rarr;
+                                    </a>
+                                  </td>
+                                </tr>
+                              </table>
                             </td>
                           </tr>
                         </table>
@@ -201,7 +169,128 @@ namespace NileGuideApi.Services
             return new EmailTemplateContent(plainTextBody, htmlBody);
         }
 
-        private static string BuildParagraphs(string body)
+        public EmailTemplateContent BuildNewsletterEmail(string subject, string body)
+        {
+            var projectUrl = GetProjectUrl();
+            var safeProjectUrl = HtmlEncoder.Default.Encode(projectUrl);
+            var safePreviewText = HtmlEncoder.Default.Encode(subject);
+            var safeTitle = HtmlEncoder.Default.Encode(subject);
+            var contentHtml = BuildNewsletterBody(body);
+
+            var plainTextBody =
+                $"{subject}{Environment.NewLine}{Environment.NewLine}" +
+                $"{NormalizeLineEndings(body)}{Environment.NewLine}{Environment.NewLine}" +
+                $"Explore NileGuide: {projectUrl}";
+
+            var htmlBody = $$"""
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                  <meta charset="utf-8" />
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+                  <title>{{safeTitle}}</title>
+                  <style>
+                    @media only screen and (max-width: 600px) {
+                      .email-shell {
+                        border-radius: 20px !important;
+                      }
+
+                      .email-content {
+                        padding: 28px 18px 36px 18px !important;
+                      }
+
+                      .email-column {
+                        max-width: 100% !important;
+                      }
+
+                      .email-title {
+                        font-size: 24px !important;
+                        line-height: 30px !important;
+                      }
+
+                      .email-copy {
+                        font-size: 14px !important;
+                        line-height: 24px !important;
+                        padding-bottom: 22px !important;
+                      }
+
+                      .cta-button {
+                        display: inline-block !important;
+                        width: auto !important;
+                      }
+                    }
+                  </style>
+                </head>
+                <body style="margin:0;padding:0;background-color:#0f0d0a;">
+                  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+                    {{safePreviewText}}
+                  </div>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0;padding:32px 12px;background-color:#0f0d0a;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-shell" style="max-width:820px;background-color:#12100c;border-radius:28px;overflow:hidden;">
+                          <tr>
+                            <td align="center" style="padding:22px 24px 0 24px;">
+                              <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:14px;line-height:18px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:{{Gold}};">
+                                {{BrandName}}
+                              </div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="email-content" style="padding:42px 24px 56px 24px;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-column" style="max-width:346px;margin:0 auto;">
+                                <tr>
+                                  <td class="email-title" style="padding:0 0 12px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:30px;line-height:38px;font-weight:800;color:{{Heading}};">
+                                    {{safeTitle}}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td class="email-copy" style="padding:0 0 28px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:30px;color:{{TextPrimary}};">
+                                    Here's what's new on NileGuide.
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="padding:0 0 10px 0;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#2b2821;border-radius:6px;">
+                                      <tr>
+                                        <td style="padding:22px 24px 18px 24px;">
+                                          <div style="font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:11px;line-height:16px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:{{Gold}};padding:0 0 16px 0;">
+                                            Newsletter update
+                                          </div>
+                                          {{contentHtml}}
+                                        </td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="padding:18px 0 20px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:28px;color:{{TextPrimary}};">
+                                    Open NileGuide to see more.
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td>
+                                    <a href="{{safeProjectUrl}}" class="cta-button" style="display:inline-block;padding:16px 22px;background-color:#f6bf32;border-radius:12px;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:22px;font-weight:800;color:#111111;text-decoration:none;">
+                                      Explore NileGuide&nbsp;&nbsp;&rarr;
+                                    </a>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """;
+
+            return new EmailTemplateContent(plainTextBody, htmlBody);
+        }
+
+        private static string BuildNewsletterBody(string body)
         {
             var normalizedBody = NormalizeLineEndings(body);
             var paragraphs = normalizedBody
@@ -223,7 +312,7 @@ namespace NileGuideApi.Services
                         .Replace(Environment.NewLine, "<br />");
 
                     return $"""
-                        <p style="margin:0 0 16px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:28px;color:#f5efe1;">
+                        <p style="margin:0 0 14px 0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:28px;color:#f5efe1;">
                           {encodedParagraph}
                         </p>
                         """;

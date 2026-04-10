@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NileGuideApi.Data;
-using NileGuideApi.Middleware;
+ using NileGuideApi.Middleware;
 using NileGuideApi.Services;
+using System.Net;
 using System.Linq;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -24,12 +25,29 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(connectionString));
 
 // Trust proxy headers so redirects, auth, and rate limiting see the real client address.
+var trustedProxyAddresses = builder.Configuration
+    .GetSection("ForwardedHeaders:KnownProxies")
+    .Get<string[]>()
+    ?.Select(value => IPAddress.TryParse(value, out var address) ? address : null)
+    .Where(address => address != null)
+    .Cast<IPAddress>()
+    .ToArray()
+    ?? Array.Empty<IPAddress>();
+
 builder.Services.Configure<ForwardedHeadersOptions>(opt =>
 {
     opt.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    opt.KnownNetworks.Clear();
-    opt.KnownProxies.Clear();
-    opt.ForwardLimit = 2;
+    opt.ForwardLimit = 1;
+
+    // Keep ASP.NET Core's safe defaults unless trusted proxies are explicitly configured.
+    if (trustedProxyAddresses.Length > 0)
+    {
+        opt.KnownNetworks.Clear();
+        opt.KnownProxies.Clear();
+
+        foreach (var address in trustedProxyAddresses)
+            opt.KnownProxies.Add(address);
+    }
 });
 
 // Frontend clients are restricted to the known Angular/local origins.
@@ -168,7 +186,7 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 
 // Centralized exception handling keeps server errors in one consistent response shape.
-app.UseMiddleware<ApiExceptionMiddleware>();
+ app.UseMiddleware<ApiExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

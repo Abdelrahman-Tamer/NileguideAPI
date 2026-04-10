@@ -20,10 +20,10 @@ namespace NileGuideApi.Services
             string? htmlMessage = null)
         {
             var fromName = _config["EmailSettings:FromName"] ?? "NileGuide";
-            var fromEmail = _config["EmailSettings:FromEmail"] ?? throw new InvalidOperationException("EmailSettings:FromEmail missing");
-            var server = _config["EmailSettings:SmtpServer"] ?? throw new InvalidOperationException("EmailSettings:SmtpServer missing");
-            var username = _config["EmailSettings:SmtpUsername"] ?? throw new InvalidOperationException("EmailSettings:SmtpUsername missing");
-            var password = _config["EmailSettings:SmtpPassword"] ?? throw new InvalidOperationException("EmailSettings:SmtpPassword missing");
+            var fromEmail = GetRequiredSetting("EmailSettings:FromEmail");
+            var server = GetRequiredSetting("EmailSettings:SmtpServer");
+            var username = GetRequiredSetting("EmailSettings:SmtpUsername");
+            var password = GetRequiredSetting("EmailSettings:SmtpPassword");
 
             var portRaw = _config["EmailSettings:SmtpPort"] ?? "587";
             if (!int.TryParse(portRaw, out var port)) port = 587;
@@ -50,6 +50,15 @@ namespace NileGuideApi.Services
             await client.AuthenticateAsync(username, password);
             await client.SendAsync(mime);
             await client.DisconnectAsync(true);
+        }
+
+        private string GetRequiredSetting(string key)
+        {
+            var value = _config[key];
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException($"{key} missing or empty");
+
+            return value;
         }
     }
 }

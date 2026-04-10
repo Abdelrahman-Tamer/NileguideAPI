@@ -151,7 +151,13 @@ namespace NileGuideApi.Controllers
                 return Unauthorized(new { message = "Invalid refresh token" });
 
             var now = DateTime.UtcNow;
-            if (refreshToken.RevokedAt != null || refreshToken.ExpiresAt <= now)
+            if (refreshToken.RevokedAt != null)
+            {
+                await RevokeDescendantRefreshTokensOnReuseAsync(refreshToken, GetClientIp());
+                return Unauthorized(new { message = "Invalid refresh token" });
+            }
+
+            if (refreshToken.ExpiresAt <= now)
                 return Unauthorized(new { message = "Invalid refresh token" });
 
             if (!refreshToken.User.IsActive || refreshToken.User.DeletedAt != null)
@@ -218,46 +224,52 @@ namespace NileGuideApi.Controllers
             var now = DateTime.UtcNow;
             var code = Generate6DigitCode();
             var tokenHash = HashResetCode(user.Id, code);
+            var existingTokenIds = await _context.PasswordResetTokens
+                .Where(t => t.UserId == user.Id && t.UsedAt == null && t.ExpiresAt > now)
+                .Select(t => t.Id)
+                .ToListAsync();
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var token = new PasswordResetToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenHash,
+                CreatedAt = now,
+                ExpiresAt = now.AddMinutes(10),
+                AttemptCount = 0
+            };
+
+            _context.PasswordResetTokens.Add(token);
+            await _context.SaveChangesAsync();
+
+            var emailContent = _emailTemplateService.BuildPasswordResetCodeEmail(
+                code,
+                TimeSpan.FromMinutes(10));
 
             try
             {
-                // The old active tokens are retired only if the new email is sent successfully.
-                var activeTokens = await _context.PasswordResetTokens
-                    .Where(t => t.UserId == user.Id && t.UsedAt == null && t.ExpiresAt > now)
-                    .ToListAsync();
-
-                foreach (var t in activeTokens)
-                    t.UsedAt = now;
-
-                var token = new PasswordResetToken
-                {
-                    UserId = user.Id,
-                    TokenHash = tokenHash,
-                    CreatedAt = now,
-                    ExpiresAt = now.AddMinutes(10),
-                    AttemptCount = 0
-                };
-
-                _context.PasswordResetTokens.Add(token);
-                await _context.SaveChangesAsync();
-
-                var emailContent = _emailTemplateService.BuildPasswordResetCodeEmail(
-                    code,
-                    TimeSpan.FromMinutes(10));
-
                 await _emailSender.SendEmailAsync(
                     user.Email,
                     "NileGuide Password Reset Code",
                     emailContent.PlainTextBody,
                     emailContent.HtmlBody);
 
-                await transaction.CommitAsync();
+                if (existingTokenIds.Count == 0)
+                    return Ok(new { message = "If the email exists, a reset code was sent." });
+
+                var previousTokens = await _context.PasswordResetTokens
+                    .Where(t => existingTokenIds.Contains(t.Id))
+                    .ToListAsync();
+
+                foreach (var t in previousTokens)
+                    t.UsedAt = now;
+                
+                await _context.SaveChangesAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                token.UsedAt = DateTime.UtcNow;
+                token.LastAttemptAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
                 throw;
             }
 
@@ -336,7 +348,7 @@ namespace NileGuideApi.Controllers
             token.UsedAt = DateTime.UtcNow;
             token.LastAttemptAt = DateTime.UtcNow;
 
-            await RevokeActiveRefreshTokensAsync(user.Id, "Password reset");
+            await RevokeActiveRefreshTokensAsync(user.Id, GetClientIp());
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Password updated" });
@@ -413,6 +425,30 @@ namespace NileGuideApi.Controllers
 
             foreach (var refreshToken in activeRefreshTokens)
                 RevokeRefreshToken(refreshToken, revokedByIp);
+        }
+
+        private async Task RevokeDescendantRefreshTokensOnReuseAsync(RefreshToken reusedRefreshToken, string? revokedByIp)
+        {
+            if (string.IsNullOrWhiteSpace(reusedRefreshToken.ReplacedByTokenHash))
+                return;
+
+            var nextTokenHash = reusedRefreshToken.ReplacedByTokenHash;
+            var visitedTokenHashes = new HashSet<string>(StringComparer.Ordinal);
+
+            while (!string.IsNullOrWhiteSpace(nextTokenHash) && visitedTokenHashes.Add(nextTokenHash))
+            {
+                var descendant = await _context.RefreshTokens
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(x => x.TokenHash == nextTokenHash);
+
+                if (descendant == null)
+                    break;
+
+                RevokeRefreshToken(descendant, revokedByIp);
+                nextTokenHash = descendant.ReplacedByTokenHash;
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         private AuthTokenResponseDto BuildAuthResponse(

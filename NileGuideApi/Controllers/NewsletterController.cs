@@ -135,13 +135,13 @@ namespace NileGuideApi.Controllers
             var sentCount = 0;
             var failedCount = 0;
             const int maxParallelSends = 5;
-
-            using var throttler = new SemaphoreSlim(maxParallelSends);
-
-            var sendTasks = subscribers.Select(async email =>
+            var parallelOptions = new ParallelOptions
             {
-                await throttler.WaitAsync(HttpContext.RequestAborted);
+                MaxDegreeOfParallelism = maxParallelSends
+            };
 
+            await Parallel.ForEachAsync(subscribers, parallelOptions, async (email, _) =>
+            {
                 try
                 {
                     await _emailSender.SendEmailAsync(
@@ -157,13 +157,7 @@ namespace NileGuideApi.Controllers
                     Interlocked.Increment(ref failedCount);
                     _logger.LogError(ex, "Failed to send newsletter to {Email}", email);
                 }
-                finally
-                {
-                    throttler.Release();
-                }
             });
-
-            await Task.WhenAll(sendTasks);
 
             return Ok(new
             {
