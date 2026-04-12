@@ -12,8 +12,8 @@ using NileGuideApi.Data;
 namespace NileGuideApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260312123742_AddRefreshTokens")]
-    partial class AddRefreshTokens
+    [Migration("20260312075807_CreateNewsletterSubscribers")]
+    partial class CreateNewsletterSubscribers
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -49,7 +49,7 @@ namespace NileGuideApi.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("NewsletterSubscribers", (string)null);
+                    b.ToTable("NewsletterSubscribers");
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.PasswordResetToken", b =>
@@ -89,55 +89,6 @@ namespace NileGuideApi.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PasswordResetTokens");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.RefreshToken", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByIp")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ReplacedByTokenHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("RevokedByIp")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.User", b =>
@@ -197,22 +148,6 @@ namespace NileGuideApi.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.RefreshToken", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.User", "User")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.User", b =>
-                {
-                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

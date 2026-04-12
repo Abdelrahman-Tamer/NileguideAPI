@@ -12,8 +12,8 @@ using NileGuideApi.Data;
 namespace NileGuideApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260312123742_AddRefreshTokens")]
-    partial class AddRefreshTokens
+    [Migration("20260314202522_AddCategoryAndCity")]
+    partial class AddCategoryAndCity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,84 @@ namespace NileGuideApi.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("NileGuideApi.Models.Category", b =>
+                {
+                    b.Property<int>("CategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryID"));
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("IconName")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("CategoryID");
+
+                    b.ToTable("Categories", (string)null);
+                });
+
+            modelBuilder.Entity("NileGuideApi.Models.City", b =>
+                {
+                    b.Property<int>("CityID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityID"));
+
+                    b.Property<string>("CityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsPopular")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(10,7)");
+
+                    b.Property<string>("Region")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("CityID");
+
+                    b.ToTable("Cities", (string)null);
+                });
 
             modelBuilder.Entity("NileGuideApi.Models.NewsletterSubscriber", b =>
                 {
