@@ -5,6 +5,7 @@ namespace NileGuideApi.Models
     {
         public int ActivityID { get; set; }
         public string ActivityName { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         public int CategoryID { get; set; }
         public Category? Category { get; set; }
@@ -12,23 +13,27 @@ namespace NileGuideApi.Models
         public int CityID { get; set; }
         public City? City { get; set; }
 
-        public string? Description { get; set; }
-        public decimal? PriceMinEst { get; set; }
-        public decimal? PriceMaxEst { get; set; }
+        public decimal? Price { get; set; }
+        public decimal? MinPrice { get; set; }
         public string PriceCurrency { get; set; } = "USD";
         public string? PriceBasis { get; set; }
-        public string? OpeningHours { get; set; }
-        public string? Location { get; set; }
-        public decimal? Latitude { get; set; }
-        public decimal? Longitude { get; set; }
-        public decimal Rating { get; set; }
+        public string? Duration { get; set; }
+        public string? GroupSize { get; set; }
+        public string? Cancellation { get; set; }
+        public string? RequiredDocuments { get; set; }
+        public string? Region { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public double Rating { get; set; }
         public int ReviewCount { get; set; }
-        public bool RequiresPersonalID { get; set; }
-        public string Status { get; set; } = "Available";
+        public string? ExternalId { get; set; }
+        public string? Provider { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? DeletedAt { get; set; }
 
+        public ICollection<ActivityHour> ActivityHours { get; set; } = new List<ActivityHour>();
         public ICollection<ActivityImage> ActivityImages { get; set; } = new List<ActivityImage>();
+        public ICollection<BookingLink> BookingLinks { get; set; } = new List<BookingLink>();
     }
 }

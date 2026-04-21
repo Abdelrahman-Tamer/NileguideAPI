@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NileGuideApi.Data;
 
@@ -11,9 +12,11 @@ using NileGuideApi.Data;
 namespace NileGuideApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415081449_FinalizeActivitiesSchema")]
+    partial class FinalizeActivitiesSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -144,49 +147,6 @@ namespace NileGuideApi.Migrations
                         .HasFilter("[ExternalId] IS NOT NULL");
 
                     b.ToTable("Activities", (string)null);
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.ActivityHour", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityID")
-                        .HasColumnType("int")
-                        .HasColumnName("ActivityID");
-
-                    b.Property<byte?>("ClosingHour")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("ClosingHour");
-
-                    b.Property<string>("ClosingPeriod")
-                        .HasMaxLength(2)
-                        .HasColumnType("varchar(2)")
-                        .HasColumnName("ClosingPeriod");
-
-                    b.Property<byte?>("OpeningHour")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("OpeningHour");
-
-                    b.Property<string>("OpeningPeriod")
-                        .HasMaxLength(2)
-                        .HasColumnType("varchar(2)")
-                        .HasColumnName("OpeningPeriod");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActivityID");
-
-                    b.ToTable("ActivityHours", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ActivityHours_ClosingPeriod", "[ClosingPeriod] IS NULL OR [ClosingPeriod] IN ('am', 'pm')");
-
-                            t.HasCheckConstraint("CK_ActivityHours_OpeningPeriod", "[OpeningPeriod] IS NULL OR [OpeningPeriod] IN ('am', 'pm')");
-                        });
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.ActivityImage", b =>
@@ -525,17 +485,6 @@ namespace NileGuideApi.Migrations
                     b.Navigation("City");
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.ActivityHour", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.Activity", "Activity")
-                        .WithMany("ActivityHours")
-                        .HasForeignKey("ActivityID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.ActivityImage", b =>
                 {
                     b.HasOne("NileGuideApi.Models.Activity", "Activity")
@@ -582,8 +531,6 @@ namespace NileGuideApi.Migrations
 
             modelBuilder.Entity("NileGuideApi.Models.Activity", b =>
                 {
-                    b.Navigation("ActivityHours");
-
                     b.Navigation("ActivityImages");
 
                     b.Navigation("BookingLinks");

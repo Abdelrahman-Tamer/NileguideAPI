@@ -23,6 +23,12 @@ namespace NileGuideApi.Data
         // Ordered images that belong to an activity.
         public DbSet<ActivityImage> ActivityImages { get; set; } = null!;
 
+        // Opening and closing windows for each activity.
+        public DbSet<ActivityHour> ActivityHours { get; set; } = null!;
+
+        // Provider booking links that belong to an activity.
+        public DbSet<BookingLink> BookingLinks { get; set; } = null!;
+
         // Password reset attempts and issued reset codes.
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
 
@@ -135,102 +141,142 @@ namespace NileGuideApi.Data
                 .HasQueryFilter(x => x.DeletedAt == null);
 
             modelBuilder.Entity<Activity>()
-                .ToTable("Activities", tableBuilder =>
-                {
-                    tableBuilder.HasCheckConstraint(
-                        "CK_Activities_Status_Allowed",
-                        "[Status] IN ('Available', 'Unavailable', 'Temporarily Closed')");
-
-                    tableBuilder.HasCheckConstraint(
-                        "CK_Activities_PriceBasis_Allowed",
-                        "[PriceBasis] IS NULL OR [PriceBasis] IN ('Free', 'PerPerson', 'PerTicket', 'PerHour', 'PerTrip', 'PerNight')");
-                });
+                .ToTable("Activities");
 
             modelBuilder.Entity<Activity>()
                 .HasKey(x => x.ActivityID);
 
             modelBuilder.Entity<Activity>()
+                .Property(x => x.ActivityID)
+                .HasColumnOrder(1);
+
+            modelBuilder.Entity<Activity>()
                 .Property(x => x.ActivityName)
                 .IsRequired()
-                .HasMaxLength(200)
-                .HasColumnType("varchar(200)");
+                .HasMaxLength(255)
+                .HasColumnType("nvarchar(255)")
+                .HasColumnOrder(2);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.Description)
-                .HasColumnType("varchar(max)");
+                .HasColumnType("nvarchar(max)")
+                .HasColumnOrder(3);
 
             modelBuilder.Entity<Activity>()
-                .Property(x => x.PriceMinEst)
-                .HasColumnType("decimal(10,2)");
+                .Property(x => x.CategoryID)
+                .HasColumnOrder(4);
 
             modelBuilder.Entity<Activity>()
-                .Property(x => x.PriceMaxEst)
-                .HasColumnType("decimal(10,2)");
+                .Property(x => x.CityID)
+                .HasColumnOrder(5);
+
+            modelBuilder.Entity<Activity>()
+                .Property(x => x.Price)
+                .HasColumnType("decimal(10,2)")
+                .HasColumnOrder(6);
+
+            modelBuilder.Entity<Activity>()
+                .Property(x => x.MinPrice)
+                .HasColumnType("decimal(10,2)")
+                .HasColumnOrder(7);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.PriceCurrency)
                 .IsRequired()
                 .HasMaxLength(10)
-                .HasColumnType("varchar(10)")
-                .HasDefaultValue("USD");
+                .HasColumnType("nvarchar(10)")
+                .HasDefaultValue("USD")
+                .HasColumnOrder(8);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.PriceBasis)
-                .HasMaxLength(20)
-                .HasColumnType("varchar(20)");
+                .HasMaxLength(50)
+                .HasColumnType("nvarchar(50)")
+                .HasColumnOrder(9);
 
             modelBuilder.Entity<Activity>()
-                .Property(x => x.OpeningHours)
-                .HasMaxLength(200)
-                .HasColumnType("nvarchar(200)");
+                .Property(x => x.Duration)
+                .HasMaxLength(50)
+                .HasColumnType("nvarchar(50)")
+                .HasColumnOrder(10);
 
             modelBuilder.Entity<Activity>()
-                .Property(x => x.Location)
-                .HasMaxLength(255)
-                .HasColumnType("varchar(255)");
+                .Property(x => x.GroupSize)
+                .HasMaxLength(100)
+                .HasColumnType("nvarchar(100)")
+                .HasColumnOrder(11);
+
+            modelBuilder.Entity<Activity>()
+                .Property(x => x.Cancellation)
+                .HasColumnType("nvarchar(max)")
+                .HasColumnOrder(12);
+
+            modelBuilder.Entity<Activity>()
+                .Property(x => x.RequiredDocuments)
+                .HasColumnType("nvarchar(max)")
+                .HasColumnOrder(13);
+
+            modelBuilder.Entity<Activity>()
+                .Property(x => x.Region)
+                .HasMaxLength(100)
+                .HasColumnType("nvarchar(100)")
+                .HasColumnOrder(14);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.Latitude)
-                .HasColumnType("decimal(10,7)");
+                .HasColumnType("float")
+                .HasColumnOrder(15);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.Longitude)
-                .HasColumnType("decimal(10,7)");
+                .HasColumnType("float")
+                .HasColumnOrder(16);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.Rating)
                 .IsRequired()
-                .HasColumnType("decimal(3,2)");
+                .HasColumnType("float")
+                .HasColumnOrder(17);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.ReviewCount)
-                .IsRequired();
+                .IsRequired()
+                .HasColumnOrder(18);
 
             modelBuilder.Entity<Activity>()
-                .Property(x => x.RequiresPersonalID)
-                .IsRequired()
-                .HasDefaultValue(false);
+                .Property(x => x.ExternalId)
+                .HasMaxLength(100)
+                .HasColumnType("nvarchar(100)")
+                .HasColumnOrder(19);
 
             modelBuilder.Entity<Activity>()
-                .Property(x => x.Status)
-                .IsRequired()
-                .HasMaxLength(20)
-                .HasColumnType("varchar(20)")
-                .HasDefaultValue("Available");
+                .HasIndex(x => x.ExternalId)
+                .IsUnique()
+                .HasFilter("[ExternalId] IS NOT NULL");
+
+            modelBuilder.Entity<Activity>()
+                .Property(x => x.Provider)
+                .HasMaxLength(50)
+                .HasColumnType("nvarchar(50)")
+                .HasColumnOrder(20);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.CreatedAt)
                 .IsRequired()
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETDATE()")
+                .HasColumnOrder(21);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.UpdatedAt)
                 .IsRequired()
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasColumnOrder(22);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.DeletedAt)
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasColumnOrder(23);
 
             modelBuilder.Entity<Activity>()
                 .HasOne(x => x.Category)
@@ -247,6 +293,63 @@ namespace NileGuideApi.Data
             modelBuilder.Entity<Activity>()
                 .HasQueryFilter(x => x.DeletedAt == null);
 
+            modelBuilder.Entity<ActivityHour>()
+                .ToTable("ActivityHours", tableBuilder =>
+                {
+                    tableBuilder.HasCheckConstraint(
+                        "CK_ActivityHours_OpeningPeriod",
+                        "[OpeningPeriod] IS NULL OR [OpeningPeriod] IN ('am', 'pm')");
+
+                    tableBuilder.HasCheckConstraint(
+                        "CK_ActivityHours_ClosingPeriod",
+                        "[ClosingPeriod] IS NULL OR [ClosingPeriod] IN ('am', 'pm')");
+                });
+
+            modelBuilder.Entity<ActivityHour>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<ActivityHour>()
+                .Property(x => x.Id)
+                .HasColumnName("id");
+
+            modelBuilder.Entity<ActivityHour>()
+                .Property(x => x.ActivityID)
+                .HasColumnName("ActivityID");
+
+            modelBuilder.Entity<ActivityHour>()
+                .Property(x => x.OpeningHour)
+                .HasColumnName("OpeningHour")
+                .HasColumnType("tinyint");
+
+            modelBuilder.Entity<ActivityHour>()
+                .Property(x => x.OpeningPeriod)
+                .HasColumnName("OpeningPeriod")
+                .HasMaxLength(2)
+                .HasColumnType("varchar(2)");
+
+            modelBuilder.Entity<ActivityHour>()
+                .Property(x => x.ClosingHour)
+                .HasColumnName("ClosingHour")
+                .HasColumnType("tinyint");
+
+            modelBuilder.Entity<ActivityHour>()
+                .Property(x => x.ClosingPeriod)
+                .HasColumnName("ClosingPeriod")
+                .HasMaxLength(2)
+                .HasColumnType("varchar(2)");
+
+            modelBuilder.Entity<ActivityHour>()
+                .HasOne(x => x.Activity)
+                .WithMany(x => x.ActivityHours)
+                .HasForeignKey(x => x.ActivityID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ActivityHour>()
+                .HasIndex(x => x.ActivityID);
+
+            modelBuilder.Entity<ActivityHour>()
+                .HasQueryFilter(x => x.Activity != null && x.Activity.DeletedAt == null);
+
             modelBuilder.Entity<ActivityImage>()
                 .ToTable("ActivityImages");
 
@@ -254,32 +357,47 @@ namespace NileGuideApi.Data
                 .HasKey(x => x.ImageID);
 
             modelBuilder.Entity<ActivityImage>()
+                .Property(x => x.ImageID)
+                .HasColumnOrder(1);
+
+            modelBuilder.Entity<ActivityImage>()
+                .Property(x => x.ActivityID)
+                .HasColumnOrder(2);
+
+            modelBuilder.Entity<ActivityImage>()
                 .Property(x => x.Url)
                 .IsRequired()
-                .HasMaxLength(1000)
-                .HasColumnType("varchar(1000)");
+                .HasColumnType("nvarchar(max)")
+                .HasColumnOrder(3);
 
             modelBuilder.Entity<ActivityImage>()
                 .Property(x => x.IsPrimary)
-                .IsRequired();
+                .IsRequired()
+                .HasDefaultValue(false)
+                .HasColumnOrder(4);
 
             modelBuilder.Entity<ActivityImage>()
                 .Property(x => x.SortOrder)
-                .IsRequired();
+                .IsRequired()
+                .HasColumnOrder(5);
 
             modelBuilder.Entity<ActivityImage>()
                 .Property(x => x.CreatedAt)
                 .IsRequired()
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("GETDATE()")
+                .HasColumnOrder(6);
 
             modelBuilder.Entity<ActivityImage>()
                 .Property(x => x.UpdatedAt)
                 .IsRequired()
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasColumnOrder(7);
 
             modelBuilder.Entity<ActivityImage>()
                 .Property(x => x.DeletedAt)
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasColumnOrder(8);
 
             modelBuilder.Entity<ActivityImage>()
                 .HasOne(x => x.Activity)
@@ -288,7 +406,39 @@ namespace NileGuideApi.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ActivityImage>()
+                .HasIndex(x => x.ActivityID);
+
+            modelBuilder.Entity<ActivityImage>()
                 .HasQueryFilter(x => x.DeletedAt == null);
+
+            modelBuilder.Entity<BookingLink>()
+                .ToTable("BookingLinks");
+
+            modelBuilder.Entity<BookingLink>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<BookingLink>()
+                .Property(x => x.Provider)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasColumnType("nvarchar(50)");
+
+            modelBuilder.Entity<BookingLink>()
+                .Property(x => x.Url)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+
+            modelBuilder.Entity<BookingLink>()
+                .HasOne(x => x.Activity)
+                .WithMany(x => x.BookingLinks)
+                .HasForeignKey(x => x.ActivityID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BookingLink>()
+                .HasIndex(x => x.ActivityID);
+
+            modelBuilder.Entity<BookingLink>()
+                .HasQueryFilter(x => x.Activity != null && x.Activity.DeletedAt == null);
 
             // Reset-code lookups are hash-based, so the hash column needs an index.
             modelBuilder.Entity<PasswordResetToken>()
