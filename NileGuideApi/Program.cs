@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NileGuideApi.Data;
- using NileGuideApi.Middleware;
+using NileGuideApi.Middleware;
+using NileGuideApi.Options;
 using NileGuideApi.Services;
 using System.Net;
 using System.Linq;
@@ -15,6 +16,38 @@ using System.Threading.RateLimiting;
 
 // Build the host and register all API dependencies here.
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOptions<ConnectionStringsOptions>()
+    .Bind(builder.Configuration.GetSection(ConnectionStringsOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.DefaultConnection), "ConnectionStrings:DefaultConnection is missing")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Key), "Jwt:Key is missing")
+    .Validate(o => Encoding.UTF8.GetByteCount(o.Key ?? string.Empty) >= 32, "Jwt:Key must be at least 32 bytes")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer is missing")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience is missing")
+    .Validate(o => o.AccessTokenMinutes > 0 || o.ExpiryMinutes > 0, "Jwt:AccessTokenMinutes or Jwt:ExpiryMinutes must be greater than zero")
+    .Validate(o => o.RefreshTokenDays > 0, "Jwt:RefreshTokenDays must be greater than zero")
+    .Validate(o => o.RefreshTokenRememberMeDays > 0, "Jwt:RefreshTokenRememberMeDays must be greater than zero")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<EmailSettingsOptions>()
+    .Bind(builder.Configuration.GetSection(EmailSettingsOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.SmtpServer), "EmailSettings:SmtpServer is missing")
+    .Validate(o => o.SmtpPort is > 0 and <= 65535, "EmailSettings:SmtpPort must be between 1 and 65535")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.SmtpUsername), "EmailSettings:SmtpUsername is missing")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.SmtpPassword), "EmailSettings:SmtpPassword is missing")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.FromEmail), "EmailSettings:FromEmail is missing")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.FromName), "EmailSettings:FromName is missing")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<SecurityOptions>()
+    .Bind(builder.Configuration.GetSection(SecurityOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.ResetCodePepper), "Security:ResetCodePepper is missing")
+    .Validate(o => Encoding.UTF8.GetByteCount(o.ResetCodePepper ?? string.Empty) >= 32, "Security:ResetCodePepper must be at least 32 bytes")
+    .ValidateOnStart();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -99,6 +132,17 @@ builder.Services.AddRateLimiter(opt =>
 {
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
+    opt.AddPolicy("RegisterPolicy", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
     opt.AddPolicy("LoginPolicy", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
@@ -126,8 +170,9 @@ builder.Services.AddRateLimiter(opt =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
-        var key = builder.Configuration["Jwt:Key"]
-                  ?? throw new InvalidOperationException("Jwt:Key missing");
+        var jwtOptions = builder.Configuration
+            .GetSection(JwtOptions.SectionName)
+            .Get<JwtOptions>() ?? new JwtOptions();
 
         opt.TokenValidationParameters = new TokenValidationParameters
         {
@@ -135,9 +180,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key ?? string.Empty)),
             ClockSkew = TimeSpan.Zero
         };
     });

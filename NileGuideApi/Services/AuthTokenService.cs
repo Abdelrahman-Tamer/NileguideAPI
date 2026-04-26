@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NileGuideApi.Models;
+using NileGuideApi.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -11,11 +13,11 @@ namespace NileGuideApi.Services
     // Centralizes access-token creation and secure refresh-token generation.
     public class AuthTokenService : IAuthTokenService
     {
-        private readonly IConfiguration _config;
+        private readonly JwtOptions _jwtOptions;
 
-        public AuthTokenService(IConfiguration config)
+        public AuthTokenService(IOptions<JwtOptions> jwtOptions)
         {
-            _config = config;
+            _jwtOptions = jwtOptions.Value;
         }
 
         public (string token, DateTime expiresAtUtc) GenerateAccessToken(User user)
@@ -27,14 +29,13 @@ namespace NileGuideApi.Services
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var keyStr = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expiresAtUtc = DateTime.UtcNow.AddMinutes(GetAccessTokenMinutes());
 
             var jwt = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Audience"],
+                issuer: _jwtOptions.Issuer,
+                audience: _jwtOptions.Audience,
                 claims: claims,
                 expires: expiresAtUtc,
                 signingCredentials: creds);
@@ -70,9 +71,7 @@ namespace NileGuideApi.Services
 
         public TimeSpan GetRefreshTokenLifetime(bool rememberMe)
         {
-            var days = rememberMe
-                ? GetPositiveDouble("Jwt:RefreshTokenRememberMeDays", 30)
-                : GetPositiveDouble("Jwt:RefreshTokenDays", 1);
+            var days = rememberMe ? _jwtOptions.RefreshTokenRememberMeDays : _jwtOptions.RefreshTokenDays;
 
             return TimeSpan.FromDays(days);
         }
@@ -91,18 +90,9 @@ namespace NileGuideApi.Services
 
         private double GetAccessTokenMinutes()
         {
-            var minutes = GetPositiveDouble("Jwt:AccessTokenMinutes", 0);
-            if (minutes > 0)
-                return minutes;
-
-            return GetPositiveDouble("Jwt:ExpiryMinutes", 30);
-        }
-
-        private double GetPositiveDouble(string key, double fallback)
-        {
-            return double.TryParse(_config[key], out var parsed) && parsed > 0
-                ? parsed
-                : fallback;
+            return _jwtOptions.AccessTokenMinutes > 0
+                ? _jwtOptions.AccessTokenMinutes
+                : _jwtOptions.ExpiryMinutes;
         }
 
         private static string? NormalizeIpAddress(string? ipAddress)

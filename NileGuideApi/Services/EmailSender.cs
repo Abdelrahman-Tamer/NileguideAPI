@@ -1,16 +1,18 @@
 using MailKit.Security;
+using Microsoft.Extensions.Options;
 using MimeKit;
+using NileGuideApi.Options;
 
 namespace NileGuideApi.Services
 {
     // Sends transactional emails through the configured SMTP server.
     public class EmailSender : IEmailSender
     {
-        private readonly IConfiguration _config;
+        private readonly EmailSettingsOptions _emailSettings;
 
-        public EmailSender(IConfiguration config)
+        public EmailSender(IOptions<EmailSettingsOptions> emailSettings)
         {
-            _config = config;
+            _emailSettings = emailSettings.Value;
         }
 
         public async Task SendEmailAsync(
@@ -19,17 +21,8 @@ namespace NileGuideApi.Services
             string plainTextMessage,
             string? htmlMessage = null)
         {
-            var fromName = _config["EmailSettings:FromName"] ?? "NileGuide";
-            var fromEmail = GetRequiredSetting("EmailSettings:FromEmail");
-            var server = GetRequiredSetting("EmailSettings:SmtpServer");
-            var username = GetRequiredSetting("EmailSettings:SmtpUsername");
-            var password = GetRequiredSetting("EmailSettings:SmtpPassword");
-
-            var portRaw = _config["EmailSettings:SmtpPort"] ?? "587";
-            if (!int.TryParse(portRaw, out var port)) port = 587;
-
             var mime = new MimeMessage();
-            mime.From.Add(new MailboxAddress(fromName, fromEmail));
+            mime.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail!));
             mime.To.Add(MailboxAddress.Parse(email));
             mime.Subject = subject;
 
@@ -46,19 +39,10 @@ namespace NileGuideApi.Services
             mime.Body = bodyBuilder.ToMessageBody();
 
             using var client = new MailKit.Net.Smtp.SmtpClient();
-            await client.ConnectAsync(server, port, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(username, password);
+            await client.ConnectAsync(_emailSettings.SmtpServer!, _emailSettings.SmtpPort, SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(_emailSettings.SmtpUsername!, _emailSettings.SmtpPassword!);
             await client.SendAsync(mime);
             await client.DisconnectAsync(true);
-        }
-
-        private string GetRequiredSetting(string key)
-        {
-            var value = _config[key];
-            if (string.IsNullOrWhiteSpace(value))
-                throw new InvalidOperationException($"{key} missing or empty");
-
-            return value;
         }
     }
 }

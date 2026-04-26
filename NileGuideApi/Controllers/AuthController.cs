@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NileGuideApi.Data;
 using NileGuideApi.DTOs;
 using NileGuideApi.Models;
+using NileGuideApi.Options;
 using NileGuideApi.Services;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -19,26 +21,27 @@ namespace NileGuideApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _config;
+        private readonly SecurityOptions _securityOptions;
         private readonly IAuthTokenService _authTokenService;
         private readonly IEmailSender _emailSender;
         private readonly IEmailTemplateService _emailTemplateService;
 
         public AuthController(
             AppDbContext context,
-            IConfiguration config,
+            IOptions<SecurityOptions> securityOptions,
             IAuthTokenService authTokenService,
             IEmailSender emailSender,
             IEmailTemplateService emailTemplateService)
         {
             _context = context;
-            _config = config;
+            _securityOptions = securityOptions.Value;
             _authTokenService = authTokenService;
             _emailSender = emailSender;
             _emailTemplateService = emailTemplateService;
         }
 
         // Registers a new tourist user and immediately returns a JWT for the frontend session.
+        [EnableRateLimiting("RegisterPolicy")]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
@@ -384,11 +387,7 @@ namespace NileGuideApi.Controllers
         // Hashes reset codes so the raw code is never stored in the database.
         private string HashResetCode(int userId, string code)
         {
-            var pepper = _config["Security:ResetCodePepper"];
-            if (string.IsNullOrWhiteSpace(pepper))
-                throw new InvalidOperationException("Security:ResetCodePepper is missing");
-
-            var raw = $"{userId}:{code}:{pepper}";
+            var raw = $"{userId}:{code}:{_securityOptions.ResetCodePepper}";
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
             return Convert.ToHexString(bytes);
         }
