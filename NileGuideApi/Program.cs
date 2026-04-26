@@ -9,8 +9,8 @@ using NileGuideApi.Data;
 using NileGuideApi.Middleware;
 using NileGuideApi.Options;
 using NileGuideApi.Services;
-using System.Net;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -126,7 +126,9 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
-
+builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICityService, CityService>();
 // The frontend already depends on these policy names, so only the internals are tuned.
 builder.Services.AddRateLimiter(opt =>
 {
@@ -231,7 +233,7 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 
 // Centralized exception handling keeps server errors in one consistent response shape.
- app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseMiddleware<ApiExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

@@ -155,7 +155,7 @@ namespace NileGuideApi.Controllers
                 catch (Exception ex)
                 {
                     Interlocked.Increment(ref failedCount);
-                    _logger.LogError(ex, "Failed to send newsletter to {Email}", email);
+                    _logger.LogError(ex, "Failed to send newsletter message");
                 }
             });
 
