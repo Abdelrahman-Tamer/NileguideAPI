@@ -9,8 +9,12 @@ using NileGuideApi.Services;
 
 namespace NileGuideApi.Controllers
 {
+    /// <summary>
+    /// Newsletter subscription endpoints and admin newsletter sending.
+    /// </summary>
     [Route("api/newsletter")]
     [ApiController]
+    [Produces("application/json")]
     public class NewsletterController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -30,8 +34,20 @@ namespace NileGuideApi.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Subscribes an email address to the newsletter.
+        /// </summary>
+        /// <remarks>
+        /// If the email already exists but is inactive, the subscription is reactivated.
+        /// </remarks>
+        /// <param name="dto">Subscriber email address.</param>
+        /// <returns>A subscription status message.</returns>
+        /// <response code="200">The email is subscribed, already subscribed, or reactivated.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
         [HttpPost("subscribe")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Subscribe([FromBody] SubscribeNewsletterDto dto)
         {
             var email = NormalizeEmail(dto.Email);
@@ -93,8 +109,20 @@ namespace NileGuideApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Unsubscribes an email address from the newsletter.
+        /// </summary>
+        /// <remarks>
+        /// The response is intentionally generic so callers cannot enumerate subscribed emails.
+        /// </remarks>
+        /// <param name="dto">Subscriber email address.</param>
+        /// <returns>A generic unsubscribe status message.</returns>
+        /// <response code="200">The request was accepted.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
         [HttpPost("unsubscribe")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Unsubscribe([FromBody] UnsubscribeNewsletterDto dto)
         {
             var email = NormalizeEmail(dto.Email);
@@ -111,8 +139,24 @@ namespace NileGuideApi.Controllers
             return Ok(new { message = "If the email is subscribed, it has been unsubscribed." });
         }
 
+        /// <summary>
+        /// Sends a newsletter campaign to all active subscribers.
+        /// </summary>
+        /// <remarks>
+        /// Requires the authenticated user to satisfy the AdminOnly authorization policy.
+        /// </remarks>
+        /// <param name="dto">Newsletter subject and body.</param>
+        /// <returns>Counts for targeted, sent, and failed newsletter emails.</returns>
+        /// <response code="200">The send operation completed and returns delivery counts.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
+        /// <response code="401">Returned when the bearer token is missing or invalid.</response>
+        /// <response code="403">Returned when the authenticated user is not an admin.</response>
         [HttpPost("send")]
         [Authorize(Policy = "AdminOnly")]
+        [ProducesResponseType(typeof(NewsletterSendResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Send([FromBody] SendNewsletterDto dto)
         {
             var subscribers = await _context.NewsletterSubscribers

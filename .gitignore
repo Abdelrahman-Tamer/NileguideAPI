@@ -365,3 +365,23 @@ FodyWeavers.xsd
 # Repository-specific local artifacts
 .codex-build/
 api-log.txt
+
+# Local configuration and secrets
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+*.pubxml.user
+*.publishsettings
+.env
+.env.*
+!.env.example
+
+# Local archives and scratch files
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.bak
+*.backup

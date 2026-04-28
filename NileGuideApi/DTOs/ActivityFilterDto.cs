@@ -2,6 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NileGuideApi.DTOs
 {
+    /// <summary>
+    /// Query-string filters used by the activity listing endpoint.
+    /// </summary>
     public class ActivityFilterDto : IValidatableObject
     {
         private static readonly HashSet<string> AllowedSortValues = new(StringComparer.OrdinalIgnoreCase)
@@ -12,17 +15,36 @@ namespace NileGuideApi.DTOs
             "name"
         };
 
+        /// <summary>
+        /// Optional category ids used to filter activities.
+        /// </summary>
         public List<int>? CategoryIds { get; set; }
+
+        /// <summary>
+        /// Optional city ids used to filter activities.
+        /// </summary>
         public List<int>? CityIds { get; set; }
 
+        /// <summary>
+        /// Optional text search over activity name and description.
+        /// </summary>
         [MaxLength(100, ErrorMessage = "Search must be at most 100 characters")]
         public string? Search { get; set; }
 
+        /// <summary>
+        /// Sort mode. Allowed values: default, priceLowToHigh, priceHighToLow, name.
+        /// </summary>
         public string SortBy { get; set; } = "default";
 
+        /// <summary>
+        /// Page number starting from 1.
+        /// </summary>
         [Range(1, 10000, ErrorMessage = "Page must be between 1 and 10000")]
         public int Page { get; set; } = 1;
 
+        /// <summary>
+        /// Number of activities per page.
+        /// </summary>
         [Range(1, 50, ErrorMessage = "PageSize must be between 1 and 50")]
         public int PageSize { get; set; } = 9;
 

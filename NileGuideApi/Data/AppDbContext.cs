@@ -38,6 +38,12 @@ namespace NileGuideApi.Data
         // Newsletter subscriptions are stored independently from user accounts.
         public DbSet<NewsletterSubscriber> NewsletterSubscribers { get; set; } = null!;
 
+        // Saved activity wishlist entries for authenticated users.
+        public DbSet<WishlistItem> WishlistItems { get; set; } = null!;
+
+        // Scheduled activity plan entries for authenticated users.
+        public DbSet<PlanItem> PlanItems { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -50,6 +56,71 @@ namespace NileGuideApi.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Id)
+                .HasColumnOrder(1);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Email)
+                .HasColumnOrder(2);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.PasswordHash)
+                .HasColumnOrder(3);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.FullName)
+                .HasColumnOrder(4);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Nationality)
+                .HasColumnOrder(5);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.DateOfBirth)
+                .HasColumnName("date_of_birth")
+                .HasColumnType("date")
+                .HasColumnOrder(6);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.ProfilePictureUrl)
+                .HasColumnName("profile_picture_url")
+                .HasMaxLength(500)
+                .HasColumnType("varchar(500)")
+                .HasColumnOrder(7);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .HasColumnOrder(8);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.IsActive)
+                .HasColumnOrder(9);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.CreatedAt)
+                .HasColumnOrder(10);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.UpdatedAt)
+                .HasColumnOrder(11);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.DeletedAt)
+                .HasColumnOrder(12);
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.WishlistItems)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.PlanItems)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Category>()
                 .ToTable("Categories");
@@ -196,8 +267,7 @@ namespace NileGuideApi.Data
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.Duration)
-                .HasMaxLength(50)
-                .HasColumnType("nvarchar(50)")
+                .IsRequired()
                 .HasColumnOrder(10);
 
             modelBuilder.Entity<Activity>()
@@ -261,22 +331,28 @@ namespace NileGuideApi.Data
                 .HasColumnOrder(20);
 
             modelBuilder.Entity<Activity>()
+                .Property(x => x.IsActive)
+                .IsRequired()
+                .HasDefaultValue(true)
+                .HasColumnOrder(21);
+
+            modelBuilder.Entity<Activity>()
                 .Property(x => x.CreatedAt)
                 .IsRequired()
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("GETDATE()")
-                .HasColumnOrder(21);
+                .HasColumnOrder(22);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.UpdatedAt)
                 .IsRequired()
                 .HasColumnType("datetime")
-                .HasColumnOrder(22);
+                .HasColumnOrder(23);
 
             modelBuilder.Entity<Activity>()
                 .Property(x => x.DeletedAt)
                 .HasColumnType("datetime")
-                .HasColumnOrder(23);
+                .HasColumnOrder(24);
 
             modelBuilder.Entity<Activity>()
                 .HasOne(x => x.Category)
@@ -291,18 +367,122 @@ namespace NileGuideApi.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Activity>()
+                .HasMany(x => x.WishlistItems)
+                .WithOne(x => x.Activity)
+                .HasForeignKey(x => x.ActivityID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Activity>()
+                .HasMany(x => x.PlanItems)
+                .WithOne(x => x.Activity)
+                .HasForeignKey(x => x.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Activity>()
                 .HasQueryFilter(x => x.DeletedAt == null);
+
+            modelBuilder.Entity<WishlistItem>()
+                .ToTable("WishlistItems");
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<WishlistItem>()
+                .Property(x => x.UserId)
+                .IsRequired();
+
+            modelBuilder.Entity<WishlistItem>()
+                .Property(x => x.ActivityID)
+                .IsRequired();
+
+            modelBuilder.Entity<WishlistItem>()
+                .Property(x => x.CreatedAtUtc)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasIndex(x => new { x.UserId, x.ActivityID })
+                .IsUnique();
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasIndex(x => x.ActivityID);
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasQueryFilter(x =>
+                    x.User != null &&
+                    x.User.DeletedAt == null &&
+                    x.Activity != null &&
+                    x.Activity.DeletedAt == null);
+
+            modelBuilder.Entity<PlanItem>()
+                .ToTable("PlanItems");
+
+            modelBuilder.Entity<PlanItem>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<PlanItem>()
+                .Property(x => x.UserId)
+                .IsRequired();
+
+            modelBuilder.Entity<PlanItem>()
+                .Property(x => x.ActivityId)
+                .IsRequired();
+
+            modelBuilder.Entity<PlanItem>()
+                .Property(x => x.ScheduledDate)
+                .IsRequired()
+                .HasColumnType("date");
+
+            modelBuilder.Entity<PlanItem>()
+                .Property(x => x.StartTime)
+                .IsRequired()
+                .HasColumnType("time");
+
+            modelBuilder.Entity<PlanItem>()
+                .Property(x => x.CreatedAtUtc)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<PlanItem>()
+                .Property(x => x.UpdatedAtUtc)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<PlanItem>()
+                .HasIndex(x => new { x.UserId, x.ActivityId })
+                .IsUnique();
+
+            modelBuilder.Entity<PlanItem>()
+                .HasIndex(x => x.ActivityId);
+
+            modelBuilder.Entity<PlanItem>()
+                .HasQueryFilter(x =>
+                    x.User != null &&
+                    x.User.DeletedAt == null &&
+                    x.Activity != null &&
+                    x.Activity.DeletedAt == null);
 
             modelBuilder.Entity<ActivityHour>()
                 .ToTable("ActivityHours", tableBuilder =>
                 {
                     tableBuilder.HasCheckConstraint(
-                        "CK_ActivityHours_OpeningPeriod",
-                        "[OpeningPeriod] IS NULL OR [OpeningPeriod] IN ('am', 'pm')");
+                        "CK_ActivityHours_OpenHour",
+                        "[open_hour] BETWEEN 1 AND 12");
 
                     tableBuilder.HasCheckConstraint(
-                        "CK_ActivityHours_ClosingPeriod",
-                        "[ClosingPeriod] IS NULL OR [ClosingPeriod] IN ('am', 'pm')");
+                        "CK_ActivityHours_CloseHour",
+                        "[close_hour] BETWEEN 1 AND 12");
+
+                    tableBuilder.HasCheckConstraint(
+                        "CK_ActivityHours_OpenAmPm",
+                        "[open_ampm] IN ('AM', 'PM')");
+
+                    tableBuilder.HasCheckConstraint(
+                        "CK_ActivityHours_CloseAmPm",
+                        "[close_ampm] IN ('AM', 'PM')");
                 });
 
             modelBuilder.Entity<ActivityHour>()
@@ -317,26 +497,30 @@ namespace NileGuideApi.Data
                 .HasColumnName("ActivityID");
 
             modelBuilder.Entity<ActivityHour>()
-                .Property(x => x.OpeningHour)
-                .HasColumnName("OpeningHour")
-                .HasColumnType("tinyint");
+                .Property(x => x.OpenHour)
+                .HasColumnName("open_hour")
+                .HasColumnType("tinyint")
+                .IsRequired();
 
             modelBuilder.Entity<ActivityHour>()
-                .Property(x => x.OpeningPeriod)
-                .HasColumnName("OpeningPeriod")
+                .Property(x => x.OpenAmPm)
+                .HasColumnName("open_ampm")
                 .HasMaxLength(2)
-                .HasColumnType("varchar(2)");
+                .HasColumnType("varchar(2)")
+                .IsRequired();
 
             modelBuilder.Entity<ActivityHour>()
-                .Property(x => x.ClosingHour)
-                .HasColumnName("ClosingHour")
-                .HasColumnType("tinyint");
+                .Property(x => x.CloseHour)
+                .HasColumnName("close_hour")
+                .HasColumnType("tinyint")
+                .IsRequired();
 
             modelBuilder.Entity<ActivityHour>()
-                .Property(x => x.ClosingPeriod)
-                .HasColumnName("ClosingPeriod")
+                .Property(x => x.CloseAmPm)
+                .HasColumnName("close_ampm")
                 .HasMaxLength(2)
-                .HasColumnType("varchar(2)");
+                .HasColumnType("varchar(2)")
+                .IsRequired();
 
             modelBuilder.Entity<ActivityHour>()
                 .HasOne(x => x.Activity)

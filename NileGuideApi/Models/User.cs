@@ -11,10 +11,14 @@ namespace NileGuideApi.Models
 
         public string FullName { get; set; } = string.Empty;
         public string Nationality { get; set; } = string.Empty;
+        public DateOnly? DateOfBirth { get; set; }
+        public string? ProfilePictureUrl { get; set; }
 
         // Role is currently used for authorization checks such as AdminOnly.
         public string Role { get; set; } = "Tourist";
 
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
+        public ICollection<PlanItem> PlanItems { get; set; } = new List<PlanItem>();
     }
 }

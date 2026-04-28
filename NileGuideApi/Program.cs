@@ -9,8 +9,10 @@ using NileGuideApi.Data;
 using NileGuideApi.Middleware;
 using NileGuideApi.Options;
 using NileGuideApi.Services;
+using NileGuideApi.Swagger;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -48,6 +50,9 @@ builder.Services.AddOptions<SecurityOptions>()
     .Validate(o => !string.IsNullOrWhiteSpace(o.ResetCodePepper), "Security:ResetCodePepper is missing")
     .Validate(o => Encoding.UTF8.GetByteCount(o.ResetCodePepper ?? string.Empty) >= 32, "Security:ResetCodePepper must be at least 32 bytes")
     .ValidateOnStart();
+
+builder.Services.Configure<CloudinaryOptions>(
+    builder.Configuration.GetSection(CloudinaryOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -122,13 +127,21 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
     };
 });
 
-// Email is used by the password-reset flow and the newsletter.
+// Auth/session services.
+builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
+
+// Email services used by password reset and newsletter flows.
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
-builder.Services.AddScoped<IAuthTokenService, AuthTokenService>();
+
+// Public discovery and user content services.
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
+builder.Services.AddScoped<IPlanService, PlanService>();
+builder.Services.AddScoped<IProfilePictureService, CloudinaryProfilePictureService>();
+
 // The frontend already depends on these policy names, so only the internals are tuned.
 builder.Services.AddRateLimiter(opt =>
 {
@@ -193,39 +206,41 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(o =>
     o.AddPolicy("AdminOnly", p => p.RequireRole("Admin")));
 
-// Swagger is development-only so production does not expose API discovery by default.
-if (builder.Environment.IsDevelopment())
+// Swagger is intentionally public so the frontend team can inspect the deployed API contract.
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
 {
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(c =>
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
-        c.SwaggerDoc("v1", new OpenApiInfo { Title = "NileGuideApi", Version = "v1" });
-
-        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-        {
-            Name = "Authorization",
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            In = ParameterLocation.Header
-        });
-
-        c.AddSecurityRequirement(new OpenApiSecurityRequirement
-        {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        });
+        Title = "NileGuide API",
+        Version = "v1",
+        Description = "Frontend-facing API documentation for NileGuide."
     });
-}
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+
+    c.TagActionsBy(api =>
+    {
+        var controller = api.ActionDescriptor.RouteValues["controller"];
+        return new[] { controller ?? "API" };
+    });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header
+    });
+
+    c.OperationFilter<SwaggerAuthorizeOperationFilter>();
+    c.OperationFilter<SwaggerResponseExamplesOperationFilter>();
+});
 
 var app = builder.Build();
 
@@ -235,11 +250,18 @@ app.UseForwardedHeaders();
 // Centralized exception handling keeps server errors in one consistent response shape.
 app.UseMiddleware<ApiExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.RoutePrefix = "swagger";
+    c.DocumentTitle = "NileGuide API Docs";
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "NileGuide API v1");
+    c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+    c.DefaultModelsExpandDepth(-1);
+    c.DisplayRequestDuration();
+    c.EnableDeepLinking();
+    c.EnableFilter();
+});
 
 app.UseHttpsRedirection();
 

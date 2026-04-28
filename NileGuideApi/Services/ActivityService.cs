@@ -23,6 +23,7 @@ namespace NileGuideApi.Services
 
             var query = _context.Activities
                 .AsNoTracking()
+                .Where(a => a.IsActive)
                 .Include(a => a.Category)
                 .Include(a => a.City)
                 .Include(a => a.ActivityImages)
@@ -68,58 +69,7 @@ namespace NileGuideApi.Services
                 .ToListAsync();
 
             var activities = pageActivities
-                .Select(a => new ActivityCardDto
-                {
-                    ActivityID = a.ActivityID,
-
-                    ActivityName = a.ActivityName ?? string.Empty,
-                    Description = a.Description ?? string.Empty,
-
-                    CategoryID = a.CategoryID,
-                    CategoryName = a.Category != null
-                        ? a.Category.CategoryName ?? string.Empty
-                        : string.Empty,
-
-                    CityID = a.CityID,
-                    CityName = a.City != null
-                        ? a.City.CityName ?? string.Empty
-                        : string.Empty,
-
-                    MinPrice = a.MinPrice ?? 0,
-                    PriceCurrency = a.PriceCurrency ?? "USD",
-
-                    ImageUrl = a.ActivityImages
-                        .OrderByDescending(img => img.IsPrimary)
-                        .ThenBy(img => img.SortOrder)
-                        .Select(img => img.Url ?? string.Empty)
-                        .FirstOrDefault() ?? string.Empty,
-
-                    RequiredDocuments = a.RequiredDocuments ?? string.Empty,
-
-                    IsActive = true,
-
-                    Rating = a.Rating,
-                    ReviewsCount = a.ReviewCount,
-
-                    Providers = a.BookingLinks
-                        .OrderBy(link => link.Id)
-                        .Select(link => new ActivityProviderDto
-                        {
-                            ProviderName = link.Provider ?? string.Empty,
-                            Link = link.Url ?? string.Empty
-                        })
-                        .ToList(),
-
-                    OpeningHours = a.ActivityHours
-                        .OrderBy(hour => hour.Id)
-                        .Select(hour => new ActivityHourDto
-                        {
-                            Day = "Daily",
-                            OpenTime = FormatHourWithPeriod(hour.OpeningHour, hour.OpeningPeriod),
-                            CloseTime = FormatHourWithPeriod(hour.ClosingHour, hour.ClosingPeriod)
-                        })
-                        .ToList()
-                })
+                .Select(ActivityDtoMapper.ToCardDto)
                 .ToList();
 
             return new PagedResultDto<ActivityCardDto>
@@ -141,82 +91,12 @@ namespace NileGuideApi.Services
                 .Include(a => a.BookingLinks)
                 .Include(a => a.ActivityHours)
                 .AsSplitQuery()
-                .FirstOrDefaultAsync(a => a.ActivityID == id);
+                .FirstOrDefaultAsync(a => a.ActivityID == id && a.IsActive);
 
             if (activity == null)
                 return null;
 
-            return new ActivityDetailsDto
-            {
-                ActivityID = activity.ActivityID,
-
-                ActivityName = activity.ActivityName ?? string.Empty,
-                Description = activity.Description ?? string.Empty,
-
-                CategoryID = activity.CategoryID,
-                CategoryName = activity.Category != null
-                    ? activity.Category.CategoryName ?? string.Empty
-                    : string.Empty,
-
-                CityID = activity.CityID,
-                CityName = activity.City != null
-                    ? activity.City.CityName ?? string.Empty
-                    : string.Empty,
-
-                Latitude = activity.Latitude
-                    ?? (activity.City?.Latitude != null ? Convert.ToDouble(activity.City.Latitude.Value) : 0),
-
-                Longitude = activity.Longitude
-                    ?? (activity.City?.Longitude != null ? Convert.ToDouble(activity.City.Longitude.Value) : 0),
-
-                Price = activity.Price ?? 0,
-                MinPrice = activity.MinPrice ?? 0,
-
-                PriceCurrency = activity.PriceCurrency ?? "USD",
-                PriceBasis = activity.PriceBasis ?? string.Empty,
-
-                Duration = activity.Duration ?? string.Empty,
-                GroupSize = activity.GroupSize ?? string.Empty,
-                Cancellation = activity.Cancellation ?? string.Empty,
-                RequiredDocuments = activity.RequiredDocuments ?? string.Empty,
-
-                IsActive = true,
-
-                Images = activity.ActivityImages
-                    .OrderByDescending(img => img.IsPrimary)
-                    .ThenBy(img => img.SortOrder)
-                    .Select(img => img.Url ?? string.Empty)
-                    .ToList(),
-
-                Providers = activity.BookingLinks
-                    .OrderBy(link => link.Id)
-                    .Select(link => new ActivityProviderDto
-                    {
-                        ProviderName = link.Provider ?? string.Empty,
-                        Link = link.Url ?? string.Empty
-                    })
-                    .ToList(),
-
-                OpeningHours = activity.ActivityHours
-                    .OrderBy(hour => hour.Id)
-                    .Select(hour => new ActivityHourDto
-                    {
-                        Day = "Daily",
-                        OpenTime = FormatHourWithPeriod(hour.OpeningHour, hour.OpeningPeriod),
-                        CloseTime = FormatHourWithPeriod(hour.ClosingHour, hour.ClosingPeriod)
-                    })
-                    .ToList()
-            };
-        }
-
-        private static string FormatHourWithPeriod(byte? hour, string? period)
-        {
-            if (!hour.HasValue)
-                return string.Empty;
-
-            var cleanPeriod = period ?? string.Empty;
-
-            return $"{hour.Value}:00 {cleanPeriod}".Trim();
+            return ActivityDtoMapper.ToDetailsDto(activity);
         }
     }
 }

@@ -15,9 +15,12 @@ using System.Text;
 
 namespace NileGuideApi.Controllers
 {
-    // Handles account creation, login, profile lookup, and password reset flows.
+    /// <summary>
+    /// Authentication, profile, token refresh, logout, and password reset endpoints.
+    /// </summary>
     [Route("api/auth")]
     [ApiController]
+    [Produces("application/json")]
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -40,9 +43,24 @@ namespace NileGuideApi.Controllers
             _emailTemplateService = emailTemplateService;
         }
 
-        // Registers a new tourist user and immediately returns a JWT for the frontend session.
+        /// <summary>
+        /// Registers a new tourist account.
+        /// </summary>
+        /// <remarks>
+        /// Creates the user, stores a hashed password, and returns an access token plus refresh token.
+        /// </remarks>
+        /// <param name="dto">Registration details including email, password, full name, nationality, and optional date of birth.</param>
+        /// <returns>The token pair and basic authenticated user metadata.</returns>
+        /// <response code="200">Registration succeeded and a token pair was issued.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
+        /// <response code="409">Returned when the email already exists.</response>
+        /// <response code="429">Returned when the register rate limit is exceeded.</response>
         [EnableRateLimiting("RegisterPolicy")]
         [HttpPost("register")]
+        [ProducesResponseType(typeof(AuthTokenResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var email = (dto.Email ?? "").Trim().ToLowerInvariant();
@@ -58,6 +76,7 @@ namespace NileGuideApi.Controllers
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 FullName = dto.FullName.Trim(),
                 Nationality = dto.Nationality.Trim(),
+                DateOfBirth = dto.DateOfBirth,
                 Role = "Tourist",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
@@ -80,9 +99,24 @@ namespace NileGuideApi.Controllers
             return Ok(authResponse);
         }
 
-        // Verifies credentials and returns the existing JWT fields plus refresh-token data.
+        /// <summary>
+        /// Logs in with email and password.
+        /// </summary>
+        /// <remarks>
+        /// Valid credentials return an access token and refresh token. Disabled or deleted accounts are rejected.
+        /// </remarks>
+        /// <param name="dto">Login credentials and optional remember-me flag.</param>
+        /// <returns>The token pair and basic authenticated user metadata.</returns>
+        /// <response code="200">Login succeeded and a token pair was issued.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
+        /// <response code="401">Returned when credentials are invalid.</response>
+        /// <response code="429">Returned when the login rate limit is exceeded.</response>
         [EnableRateLimiting("LoginPolicy")]
         [HttpPost("login")]
+        [ProducesResponseType(typeof(AuthTokenResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var email = (dto.Email ?? "").Trim().ToLowerInvariant();
@@ -102,9 +136,16 @@ namespace NileGuideApi.Controllers
             return Ok(authResponse);
         }
 
-        // Returns the profile represented by the current JWT.
+        /// <summary>
+        /// Gets the profile for the current authenticated user.
+        /// </summary>
+        /// <returns>Public profile data for the user represented by the bearer token.</returns>
+        /// <response code="200">Returns the authenticated user's profile.</response>
+        /// <response code="401">Returned when the bearer token is missing, invalid, or belongs to an inactive user.</response>
         [Authorize]
         [HttpGet("me")]
+        [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Me()
         {
             var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -119,19 +160,37 @@ namespace NileGuideApi.Controllers
             if (!user.IsActive || user.DeletedAt != null)
                 return Unauthorized(new { message = "Invalid token" });
 
-            return Ok(new
+            return Ok(new UserProfileDto
             {
-                userId = user.Id,
-                email = user.Email,
-                fullName = user.FullName,
-                nationality = user.Nationality,
-                role = user.Role
+                UserId = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                Nationality = user.Nationality,
+                DateOfBirth = user.DateOfBirth,
+                Age = CalculateAge(user.DateOfBirth),
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                Role = user.Role
             });
         }
 
-        // Rotates a valid refresh token and issues a brand-new token pair.
+        /// <summary>
+        /// Refreshes an expired or near-expired access token.
+        /// </summary>
+        /// <remarks>
+        /// A valid refresh token is rotated and replaced with a new refresh token.
+        /// </remarks>
+        /// <param name="dto">The current refresh token.</param>
+        /// <returns>A new access token and refresh token pair.</returns>
+        /// <response code="200">Refresh succeeded and a new token pair was issued.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
+        /// <response code="401">Returned when the refresh token is invalid, expired, revoked, or belongs to an inactive user.</response>
+        /// <response code="429">Returned when the refresh rate limit is exceeded.</response>
         [EnableRateLimiting("LoginPolicy")]
         [HttpPost("refresh")]
+        [ProducesResponseType(typeof(AuthTokenResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
         {
             RefreshToken? refreshToken;
@@ -186,9 +245,19 @@ namespace NileGuideApi.Controllers
                 newRefreshToken.ExpiresAt));
         }
 
-        // Revokes all active refresh tokens for the current authenticated user.
+        /// <summary>
+        /// Logs out the current authenticated user.
+        /// </summary>
+        /// <remarks>
+        /// Revokes all active refresh tokens for the user represented by the bearer token.
+        /// </remarks>
+        /// <returns>A confirmation message.</returns>
+        /// <response code="200">Logout succeeded.</response>
+        /// <response code="401">Returned when the bearer token is missing or invalid.</response>
         [Authorize]
         [HttpPost("logout")]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Logout()
         {
             var userId = GetAuthenticatedUserId();
@@ -212,9 +281,22 @@ namespace NileGuideApi.Controllers
             return Ok(new { message = "Logged out" });
         }
 
-        // Creates a short-lived reset token and emails a 6-digit code to the user.
+        /// <summary>
+        /// Starts the password reset flow.
+        /// </summary>
+        /// <remarks>
+        /// Sends a six-digit reset code when the email belongs to an active user. The response stays generic to prevent account enumeration.
+        /// </remarks>
+        /// <param name="dto">Email address to reset.</param>
+        /// <returns>A generic reset-code message.</returns>
+        /// <response code="200">The request was accepted. A reset code is sent only if the account exists and is active.</response>
+        /// <response code="400">Returned when the request body fails validation.</response>
+        /// <response code="429">Returned when the password reset rate limit is exceeded.</response>
         [EnableRateLimiting("ResetPolicy")]
         [HttpPost("forgot-password")]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
             var email = (dto.Email ?? "").Trim().ToLowerInvariant();
@@ -279,16 +361,26 @@ namespace NileGuideApi.Controllers
             return Ok(new { message = "If the email exists, a reset code was sent." });
         }
 
-        // Verifies the latest valid reset code without consuming it yet.
+        /// <summary>
+        /// Checks whether a password reset code is valid.
+        /// </summary>
+        /// <param name="dto">Email address and six-digit reset code.</param>
+        /// <returns>A confirmation message when the code is valid.</returns>
+        /// <response code="200">The reset code is valid.</response>
+        /// <response code="400">Returned when the request body fails validation or the code is invalid.</response>
+        /// <response code="429">Returned when the password reset rate limit is exceeded.</response>
         [EnableRateLimiting("ResetPolicy")]
         [HttpPost("verify-reset-code")]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeDto dto)
         {
             var email = (dto.Email ?? "").Trim().ToLowerInvariant();
             var code = (dto.Code ?? "").Trim();
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
+            if (user == null || !user.IsActive || user.DeletedAt != null)
                 return BadRequest(new { message = "Invalid code" });
 
             var tokenHash = HashResetCode(user.Id, code);
@@ -312,16 +404,29 @@ namespace NileGuideApi.Controllers
             return Ok(new { message = "Code is valid" });
         }
 
-        // Replaces the user's password after a valid reset-code check.
+        /// <summary>
+        /// Completes the password reset flow.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the password after validating the reset code and revokes the user's active refresh tokens.
+        /// </remarks>
+        /// <param name="dto">Email address, six-digit reset code, and new password.</param>
+        /// <returns>A confirmation message.</returns>
+        /// <response code="200">Password was updated successfully.</response>
+        /// <response code="400">Returned when validation fails, the code is invalid, or the new password matches the old password.</response>
+        /// <response code="429">Returned when the password reset rate limit is exceeded.</response>
         [EnableRateLimiting("ResetPolicy")]
         [HttpPost("reset-password")]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
             var email = (dto.Email ?? "").Trim().ToLowerInvariant();
             var code = (dto.Code ?? "").Trim();
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
+            if (user == null || !user.IsActive || user.DeletedAt != null)
                 return BadRequest(new { message = "Invalid code" });
 
             var tokenHash = HashResetCode(user.Id, code);
@@ -463,6 +568,9 @@ namespace NileGuideApi.Controllers
                 ExpiresAtUtc = accessTokenExpiresAtUtc,
                 UserId = user.Id,
                 Role = user.Role,
+                DateOfBirth = user.DateOfBirth,
+                Age = CalculateAge(user.DateOfBirth),
+                ProfilePictureUrl = user.ProfilePictureUrl,
                 RefreshToken = refreshToken,
                 RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc
             };
@@ -472,6 +580,19 @@ namespace NileGuideApi.Controllers
         {
             var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             return int.TryParse(idStr, out var userId) ? userId : null;
+        }
+
+        private static int? CalculateAge(DateOnly? dateOfBirth)
+        {
+            if (!dateOfBirth.HasValue)
+                return null;
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var age = today.Year - dateOfBirth.Value.Year;
+            if (dateOfBirth.Value > today.AddYears(-age))
+                age--;
+
+            return age;
         }
 
         private string? GetClientIp()
