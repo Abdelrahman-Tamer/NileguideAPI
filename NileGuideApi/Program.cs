@@ -141,6 +141,7 @@ builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<IPlanService, PlanService>();
 builder.Services.AddScoped<IProfilePictureService, CloudinaryProfilePictureService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 // The frontend already depends on these policy names, so only the internals are tuned.
 builder.Services.AddRateLimiter(opt =>

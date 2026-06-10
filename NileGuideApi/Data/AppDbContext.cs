@@ -11,6 +11,9 @@ namespace NileGuideApi.Data
         // Registered application users.
         public DbSet<User> Users { get; set; } = null!;
 
+        // Extra profile preferences for each user.
+        public DbSet<UserProfile> UserProfiles { get; set; } = null!;
+
         // Static content categories configured by the admin/domain model.
         public DbSet<Category> Categories { get; set; } = null!;
 
@@ -122,7 +125,91 @@ namespace NileGuideApi.Data
                 .WithOne(x => x.User)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            // User profile table.
+            // One user has one profile.
+            modelBuilder.Entity<UserProfile>()
+                .ToTable("UserProfiles");
 
+            modelBuilder.Entity<UserProfile>()
+                .HasKey(x => x.UserProfileId);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.UserProfileId)
+                .HasColumnOrder(1);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.UserId)
+                .IsRequired()
+                .HasColumnOrder(2);
+
+            modelBuilder.Entity<UserProfile>()
+                .HasIndex(x => x.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<UserProfile>()
+                .HasOne(x => x.User)
+                .WithOne(u => u.Profile)
+                .HasForeignKey<UserProfile>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserProfile>()
+                .HasQueryFilter(x => x.User != null && x.User.DeletedAt == null);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.HasTravelDates)
+                .IsRequired()
+                .HasDefaultValue(false)
+                .HasColumnOrder(3);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.TravelStartDate)
+                .IsRequired()
+                .HasColumnType("date")
+                .HasDefaultValue(DateOnly.MinValue)
+                .HasColumnOrder(4);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.TravelEndDate)
+                .IsRequired()
+                .HasColumnType("date")
+                .HasDefaultValue(DateOnly.MinValue)
+                .HasColumnOrder(5);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.BudgetLevel)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .HasDefaultValue("")
+                .HasColumnOrder(6);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.PreferredCityIdsJson)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)")
+                .HasDefaultValue("[]")
+                .HasColumnOrder(7);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.InterestCategoryIdsJson)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)")
+                .HasDefaultValue("[]")
+                .HasColumnOrder(8);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.CreatedAt)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()")
+                .HasColumnOrder(9);
+
+            modelBuilder.Entity<UserProfile>()
+                .Property(x => x.UpdatedAt)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("SYSUTCDATETIME()")
+                .HasColumnOrder(10);
             modelBuilder.Entity<Category>()
                 .ToTable("Categories");
 
