@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NileGuideApi.Data;
 
@@ -11,13 +12,15 @@ using NileGuideApi.Data;
 namespace NileGuideApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415074915_MoveActivityAuditColumnsToEnd")]
+    partial class MoveActivityAuditColumnsToEnd
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.26")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -52,52 +55,31 @@ namespace NileGuideApi.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasColumnOrder(22)
+                        .HasColumnOrder(19)
                         .HasDefaultValueSql("GETDATE()");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime")
-                        .HasColumnOrder(24);
+                        .HasColumnOrder(21);
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnOrder(3);
 
-                    b.Property<int>("Duration")
-                        .HasColumnType("int")
+                    b.Property<string>("Duration")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnOrder(10);
 
                     b.Property<string>("ExternalId")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
-                        .HasColumnOrder(19);
+                        .HasColumnOrder(17);
 
                     b.Property<string>("GroupSize")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnOrder(11);
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnOrder(21);
-
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("float")
-                        .HasColumnOrder(15);
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("float")
-                        .HasColumnOrder(16);
-
-                    b.Property<decimal?>("MinPrice")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnOrder(7);
-
-                    b.Property<decimal?>("Price")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnOrder(6);
 
                     b.Property<string>("PriceBasis")
                         .HasMaxLength(50)
@@ -112,14 +94,22 @@ namespace NileGuideApi.Migrations
                         .HasDefaultValue("USD")
                         .HasColumnOrder(8);
 
+                    b.Property<decimal?>("PriceMaxEst")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnOrder(7);
+
+                    b.Property<decimal?>("PriceMinEst")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnOrder(6);
+
                     b.Property<string>("Provider")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
-                        .HasColumnOrder(20);
+                        .HasColumnOrder(18);
 
                     b.Property<double>("Rating")
                         .HasColumnType("float")
-                        .HasColumnOrder(17);
+                        .HasColumnOrder(15);
 
                     b.Property<string>("Region")
                         .HasMaxLength(100)
@@ -132,11 +122,11 @@ namespace NileGuideApi.Migrations
 
                     b.Property<int>("ReviewCount")
                         .HasColumnType("int")
-                        .HasColumnOrder(18);
+                        .HasColumnOrder(16);
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime")
-                        .HasColumnOrder(23);
+                        .HasColumnOrder(20);
 
                     b.HasKey("ActivityID");
 
@@ -144,60 +134,7 @@ namespace NileGuideApi.Migrations
 
                     b.HasIndex("CityID");
 
-                    b.HasIndex("ExternalId")
-                        .IsUnique()
-                        .HasFilter("[ExternalId] IS NOT NULL");
-
                     b.ToTable("Activities", (string)null);
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.ActivityHour", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityID")
-                        .HasColumnType("int")
-                        .HasColumnName("ActivityID");
-
-                    b.Property<string>("CloseAmPm")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .HasColumnType("varchar(2)")
-                        .HasColumnName("close_ampm");
-
-                    b.Property<byte>("CloseHour")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("close_hour");
-
-                    b.Property<string>("OpenAmPm")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .HasColumnType("varchar(2)")
-                        .HasColumnName("open_ampm");
-
-                    b.Property<byte>("OpenHour")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("open_hour");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActivityID");
-
-                    b.ToTable("ActivityHours", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ActivityHours_CloseAmPm", "[close_ampm] IN ('AM', 'PM')");
-
-                            t.HasCheckConstraint("CK_ActivityHours_CloseHour", "[close_hour] BETWEEN 1 AND 12");
-
-                            t.HasCheckConstraint("CK_ActivityHours_OpenAmPm", "[open_ampm] IN ('AM', 'PM')");
-
-                            t.HasCheckConstraint("CK_ActivityHours_OpenHour", "[open_hour] BETWEEN 1 AND 12");
-                        });
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.ActivityImage", b =>
@@ -247,34 +184,6 @@ namespace NileGuideApi.Migrations
                     b.HasIndex("ActivityID");
 
                     b.ToTable("ActivityImages", (string)null);
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.ActivityView", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.Property<DateTime>("ViewedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(3)
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActivityId");
-
-                    b.HasIndex("ViewedAt");
-
-                    b.ToTable("ActivityViews", (string)null);
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.BookingLink", b =>
@@ -448,46 +357,6 @@ namespace NileGuideApi.Migrations
                     b.ToTable("PasswordResetTokens");
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.PlanItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateOnly>("ScheduledDate")
-                        .HasColumnType("date");
-
-                    b.Property<TimeOnly>("StartTime")
-                        .HasColumnType("time");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActivityId");
-
-                    b.HasIndex("UserId", "ActivityId")
-                        .IsUnique();
-
-                    b.ToTable("PlanItems", (string)null);
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -537,126 +406,45 @@ namespace NileGuideApi.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.Review", b =>
-                {
-                    b.Property<int>("ReviewId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReviewId"));
-
-                    b.Property<int>("ActivityId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(2000)")
-                        .HasColumnOrder(7);
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(8)
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(10);
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("int")
-                        .HasColumnOrder(6);
-
-                    b.Property<string>("ReviewerCity")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnOrder(5);
-
-                    b.Property<string>("ReviewerName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnOrder(4);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(9);
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(3);
-
-                    b.HasKey("ReviewId");
-
-                    b.HasIndex("ActivityId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Reviews", (string)null);
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
+                        .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(10);
-
-                    b.Property<DateOnly>("DateOfBirth")
-                        .HasColumnType("date")
-                        .HasColumnName("date_of_birth")
-                        .HasColumnOrder(6);
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(12);
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnOrder(2);
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnOrder(4);
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit")
-                        .HasColumnOrder(9);
+                        .HasColumnType("bit");
 
                     b.Property<string>("Nationality")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnOrder(5);
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnOrder(3);
-
-                    b.Property<string>("ProfilePictureUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("profile_picture_url")
-                        .HasColumnOrder(7);
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnOrder(8);
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(11);
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -664,108 +452,6 @@ namespace NileGuideApi.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.UserProfile", b =>
-                {
-                    b.Property<int>("UserProfileId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnOrder(1);
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserProfileId"));
-
-                    b.Property<string>("BudgetLevel")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasDefaultValue("")
-                        .HasColumnOrder(6);
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(9)
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<bool>("HasTravelDates")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnOrder(3);
-
-                    b.Property<string>("InterestCategoryIdsJson")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("[]")
-                        .HasColumnOrder(8);
-
-                    b.Property<string>("PreferredCityIdsJson")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("[]")
-                        .HasColumnOrder(7);
-
-                    b.Property<DateOnly>("TravelEndDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("date")
-                        .HasDefaultValue(new DateOnly(1, 1, 1))
-                        .HasColumnOrder(5);
-
-                    b.Property<DateOnly>("TravelStartDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("date")
-                        .HasDefaultValue(new DateOnly(1, 1, 1))
-                        .HasColumnOrder(4);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnOrder(10)
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnOrder(2);
-
-                    b.HasKey("UserProfileId");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("UserProfiles", (string)null);
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.WishlistItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityID")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActivityID");
-
-                    b.HasIndex("UserId", "ActivityID")
-                        .IsUnique();
-
-                    b.ToTable("WishlistItems", (string)null);
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.Activity", b =>
@@ -787,33 +473,11 @@ namespace NileGuideApi.Migrations
                     b.Navigation("City");
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.ActivityHour", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.Activity", "Activity")
-                        .WithMany("ActivityHours")
-                        .HasForeignKey("ActivityID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.ActivityImage", b =>
                 {
                     b.HasOne("NileGuideApi.Models.Activity", "Activity")
                         .WithMany("ActivityImages")
                         .HasForeignKey("ActivityID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.ActivityView", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.Activity", "Activity")
-                        .WithMany()
-                        .HasForeignKey("ActivityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -842,25 +506,6 @@ namespace NileGuideApi.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.PlanItem", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.Activity", "Activity")
-                        .WithMany("PlanItems")
-                        .HasForeignKey("ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("NileGuideApi.Models.User", "User")
-                        .WithMany("PlanItems")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.RefreshToken", b =>
                 {
                     b.HasOne("NileGuideApi.Models.User", "User")
@@ -872,66 +517,11 @@ namespace NileGuideApi.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.Review", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.Activity", "Activity")
-                        .WithMany()
-                        .HasForeignKey("ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("NileGuideApi.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.UserProfile", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.User", "User")
-                        .WithOne("Profile")
-                        .HasForeignKey("NileGuideApi.Models.UserProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("NileGuideApi.Models.WishlistItem", b =>
-                {
-                    b.HasOne("NileGuideApi.Models.Activity", "Activity")
-                        .WithMany("WishlistItems")
-                        .HasForeignKey("ActivityID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("NileGuideApi.Models.User", "User")
-                        .WithMany("WishlistItems")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("NileGuideApi.Models.Activity", b =>
                 {
-                    b.Navigation("ActivityHours");
-
                     b.Navigation("ActivityImages");
 
                     b.Navigation("BookingLinks");
-
-                    b.Navigation("PlanItems");
-
-                    b.Navigation("WishlistItems");
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.Category", b =>
@@ -946,13 +536,7 @@ namespace NileGuideApi.Migrations
 
             modelBuilder.Entity("NileGuideApi.Models.User", b =>
                 {
-                    b.Navigation("PlanItems");
-
-                    b.Navigation("Profile");
-
                     b.Navigation("RefreshTokens");
-
-                    b.Navigation("WishlistItems");
                 });
 #pragma warning restore 612, 618
         }

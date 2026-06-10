@@ -15,6 +15,7 @@ namespace NileGuideApi.Models
         // Required because profile age is calculated from this value.
         public DateOnly DateOfBirth { get; set; }
 
+        // Optional because user may not upload a profile picture.
         public string? ProfilePictureUrl { get; set; }
 
         // Role is currently used for authorization checks such as AdminOnly.

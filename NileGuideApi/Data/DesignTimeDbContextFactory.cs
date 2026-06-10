@@ -26,7 +26,13 @@ namespace NileGuideApi.Data
                 throw new InvalidOperationException("DefaultConnection missing");
 
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseSqlServer(cs);
+            optionsBuilder.UseSqlServer(cs, sql =>
+            {
+                sql.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
+            });
 
             return new AppDbContext(optionsBuilder.Options);
         }

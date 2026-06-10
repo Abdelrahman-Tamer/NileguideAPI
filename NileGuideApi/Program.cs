@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NileGuideApi.Data;
+using NileGuideApi.Hubs;
 using NileGuideApi.Middleware;
 using NileGuideApi.Options;
 using NileGuideApi.Services;
 using NileGuideApi.Swagger;
-using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -55,12 +55,18 @@ builder.Services.Configure<CloudinaryOptions>(
     builder.Configuration.GetSection(CloudinaryOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
+if ( string.IsNullOrWhiteSpace(connectionString) )
     throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing");
 
 // The main EF Core context for users, reset tokens, and newsletter subscribers.
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(connectionString));
+    opt.UseSqlServer(connectionString, sql =>
+    {
+        sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null);
+    }));
 
 // Trust proxy headers so redirects, auth, and rate limiting see the real client address.
 var trustedProxyAddresses = builder.Configuration
@@ -78,14 +84,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(opt =>
     opt.ForwardLimit = 1;
 
     // Keep ASP.NET Core's safe defaults unless trusted proxies are explicitly configured.
-    if (trustedProxyAddresses.Length > 0)
-    {
+    if ( trustedProxyAddresses.Length > 0 )
+        {
         opt.KnownNetworks.Clear();
         opt.KnownProxies.Clear();
 
-        foreach (var address in trustedProxyAddresses)
+        foreach ( var address in trustedProxyAddresses )
             opt.KnownProxies.Add(address);
-    }
+        }
 });
 
 // Frontend clients are restricted to the known Angular/local origins.
@@ -120,10 +126,10 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
             );
 
         return new BadRequestObjectResult(new
-        {
+            {
             message = "Validation failed",
             errors
-        });
+            });
     };
 });
 
@@ -142,7 +148,12 @@ builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<IPlanService, PlanService>();
 builder.Services.AddScoped<IProfilePictureService, CloudinaryProfilePictureService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IActivityImageService, ActivityImageService>();
+builder.Services.AddScoped<IAdminActivityService, AdminActivityService>();
+builder.Services.AddSignalR();
 // The frontend already depends on these policy names, so only the internals are tuned.
 builder.Services.AddRateLimiter(opt =>
 {
@@ -152,34 +163,34 @@ builder.Services.AddRateLimiter(opt =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
-            {
+                {
                 PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(10),
                 QueueLimit = 0,
                 AutoReplenishment = true
-            }));
+                }));
 
     opt.AddPolicy("LoginPolicy", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
-            {
+                {
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
-            }));
+                }));
 
     opt.AddPolicy("ResetPolicy", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
-            {
+                {
                 PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
-            }));
+                }));
 });
 
 // JWT auth backs the login/register/refresh flows and the protected endpoints.
@@ -191,7 +202,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .Get<JwtOptions>() ?? new JwtOptions();
 
         opt.TokenValidationParameters = new TokenValidationParameters
-        {
+            {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
@@ -200,7 +211,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key ?? string.Empty)),
             ClockSkew = TimeSpan.Zero
-        };
+            };
     });
 
 // Keep the admin policy registered even if only some environments use it.
@@ -212,15 +223,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
-    {
+        {
         Title = "NileGuide API",
         Version = "v1",
         Description = "Frontend-facing API documentation for NileGuide."
-    });
+        });
 
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
+    if ( File.Exists(xmlPath) )
         c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 
     c.TagActionsBy(api =>
@@ -230,14 +241,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
+        {
         Description = "JWT Authorization header using the Bearer scheme.",
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header
-    });
+        });
 
     c.OperationFilter<SwaggerAuthorizeOperationFilter>();
     c.OperationFilter<SwaggerResponseExamplesOperationFilter>();
@@ -275,5 +286,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<DashboardHub>("/hubs/dashboard");
+
+using ( var scope = app.Services.CreateScope() )
+    {
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+    }
 
 app.Run();

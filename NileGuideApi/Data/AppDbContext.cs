@@ -47,6 +47,12 @@ namespace NileGuideApi.Data
         // Scheduled activity plan entries for authenticated users.
         public DbSet<PlanItem> PlanItems { get; set; } = null!;
 
+        // Reviews written by authenticated users for activities.
+        public DbSet<Review> Reviews { get; set; } = null!;
+
+        // View logs for activity details pages.
+        public DbSet<ActivityView> ActivityViews { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -125,6 +131,7 @@ namespace NileGuideApi.Data
                 .WithOne(x => x.User)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
             // User profile table.
             // One user has one profile.
             modelBuilder.Entity<UserProfile>()
@@ -210,6 +217,7 @@ namespace NileGuideApi.Data
                 .HasColumnType("datetime2")
                 .HasDefaultValueSql("SYSUTCDATETIME()")
                 .HasColumnOrder(10);
+
             modelBuilder.Entity<Category>()
                 .ToTable("Categories");
 
@@ -552,6 +560,130 @@ namespace NileGuideApi.Data
                     x.User.DeletedAt == null &&
                     x.Activity != null &&
                     x.Activity.DeletedAt == null);
+
+            modelBuilder.Entity<Review>()
+                .ToTable("Reviews");
+
+            modelBuilder.Entity<Review>()
+                .HasKey(x => x.ReviewId);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.ReviewId)
+                .HasColumnOrder(1);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.ActivityId)
+                .IsRequired()
+                .HasColumnOrder(2);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.UserId)
+                .IsRequired()
+                .HasColumnOrder(3);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.ReviewerName)
+                .IsRequired()
+                .HasMaxLength(150)
+                .HasColumnType("nvarchar(150)")
+                .HasColumnOrder(4);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.ReviewerCity)
+                .HasMaxLength(100)
+                .HasColumnType("nvarchar(100)")
+                .HasColumnOrder(5);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.Rating)
+                .IsRequired()
+                .HasColumnOrder(6);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.Comment)
+                .IsRequired()
+                .HasColumnType("nvarchar(2000)")
+                .HasColumnOrder(7);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.CreatedAt)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETUTCDATE()")
+                .HasColumnOrder(8);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.UpdatedAt)
+                .HasColumnType("datetime2")
+                .HasColumnOrder(9);
+
+            modelBuilder.Entity<Review>()
+                .Property(x => x.DeletedAt)
+                .HasColumnType("datetime2")
+                .HasColumnOrder(10);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(x => x.Activity)
+                .WithMany()
+                .HasForeignKey(x => x.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Review>()
+                .HasIndex(x => x.ActivityId);
+
+            modelBuilder.Entity<Review>()
+                .HasIndex(x => x.UserId);
+
+            modelBuilder.Entity<Review>()
+                .HasQueryFilter(x =>
+                    x.DeletedAt == null &&
+                    x.Activity != null &&
+                    x.Activity.DeletedAt == null &&
+                    x.User != null &&
+                    x.User.DeletedAt == null);
+
+            modelBuilder.Entity<ActivityView>()
+                .ToTable("ActivityViews");
+
+            modelBuilder.Entity<ActivityView>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<ActivityView>()
+                .Property(x => x.Id)
+                .HasColumnOrder(1);
+
+            modelBuilder.Entity<ActivityView>()
+                .Property(x => x.ActivityId)
+                .IsRequired()
+                .HasColumnOrder(2);
+
+            modelBuilder.Entity<ActivityView>()
+                .Property(x => x.ViewedAt)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETUTCDATE()")
+                .HasColumnOrder(3);
+
+            modelBuilder.Entity<ActivityView>()
+                .HasOne(x => x.Activity)
+                .WithMany()
+                .HasForeignKey(x => x.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ActivityView>()
+                .HasIndex(x => x.ActivityId);
+
+            modelBuilder.Entity<ActivityView>()
+                .HasIndex(x => x.ViewedAt);
+
+            modelBuilder.Entity<ActivityView>()
+                .HasQueryFilter(x => x.Activity != null && x.Activity.DeletedAt == null);
 
             modelBuilder.Entity<ActivityHour>()
                 .ToTable("ActivityHours", tableBuilder =>
