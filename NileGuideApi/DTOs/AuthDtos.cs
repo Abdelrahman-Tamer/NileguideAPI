@@ -42,6 +42,7 @@ namespace NileGuideApi.DTOs
         /// <summary>
         /// Required user date of birth. Sent as YYYY-MM-DD and used to calculate age in responses.
         /// </summary>
+        [Required(ErrorMessage = "DateOfBirth is required")]
         [DataType(DataType.Date)]
         public DateOnly DateOfBirth { get; set; }
 
