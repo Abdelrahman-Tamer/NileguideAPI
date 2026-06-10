@@ -257,6 +257,13 @@ namespace NileGuideApi.Swagger
                     AddMessage(operation, "502", "cloudinaryFailed", "Profile picture upload failed");
                     AddMessage(operation, "503", "cloudinaryNotConfigured", "Cloudinary is not configured");
                     break;
+
+                case ("DELETE", "/api/users/me/profile-picture"):
+                    AddMessage(operation, "401", "invalidToken", "Invalid token");
+                    AddMessage(operation, "404", "userNotFound", "User not found");
+                    AddMessage(operation, "502", "cloudinaryFailed", "Profile picture deletion failed");
+                    AddMessage(operation, "503", "cloudinaryNotConfigured", "Cloudinary is not configured");
+                    break;
             }
         }
 

@@ -424,6 +424,24 @@ Errors:
 - `502 Bad Gateway`: Cloudinary upload failed.
 - `503 Service Unavailable`: Cloudinary is not configured on the server.
 
+### Delete Profile Picture
+
+Protected endpoint. Deletes the profile picture for the logged-in user. If the user does not currently have a profile picture, the endpoint still returns `204 No Content`.
+
+```http
+DELETE /api/users/me/profile-picture
+Authorization: Bearer {accessToken}
+```
+
+Success: `204 No Content`
+
+Errors:
+
+- `401 Unauthorized`: missing or invalid token.
+- `404 Not Found`: user does not exist.
+- `502 Bad Gateway`: Cloudinary deletion failed.
+- `503 Service Unavailable`: Cloudinary is not configured on the server.
+
 ## Categories
 
 Public endpoint. No token required.
