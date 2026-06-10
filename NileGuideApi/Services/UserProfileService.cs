@@ -19,7 +19,7 @@ namespace NileGuideApi.Services
         {
             var user = await _context.Users
                 .Include(u => u.Profile)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId && u.DeletedAt == null);
 
             if (user == null)
                 return null;
@@ -38,25 +38,10 @@ namespace NileGuideApi.Services
         {
             var user = await _context.Users
                 .Include(u => u.Profile)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId && u.DeletedAt == null);
 
             if (user == null)
                 return null;
-
-            var cleanCityIds = NormalizeIds(dto.PreferredCityIds);
-            var cleanCategoryIds = NormalizeIds(dto.InterestCategoryIds);
-
-            var validCityCount = await _context.Cities
-                .CountAsync(c => cleanCityIds.Contains(c.CityID));
-
-            if (validCityCount != cleanCityIds.Count)
-                throw new InvalidOperationException("Some selected cities do not exist");
-
-            var validCategoryCount = await _context.Categories
-                .CountAsync(c => cleanCategoryIds.Contains(c.CategoryID));
-
-            if (validCategoryCount != cleanCategoryIds.Count)
-                throw new InvalidOperationException("Some selected categories do not exist");
 
             var now = DateTime.UtcNow;
 
@@ -97,23 +82,34 @@ namespace NileGuideApi.Services
 
             user.UpdatedAt = now;
 
-            // Required profile fields stay required and keep the old behavior.
-            user.Profile.HasTravelDates = dto.HasTravelDates;
+            ApplyTravelDates(user.Profile, dto);
 
-            if (dto.HasTravelDates)
+            if (dto.PreferredCityIds != null)
             {
-                user.Profile.TravelStartDate = dto.TravelStartDate;
-                user.Profile.TravelEndDate = dto.TravelEndDate;
-            }
-            else
-            {
-                user.Profile.TravelStartDate = DateOnly.MinValue;
-                user.Profile.TravelEndDate = DateOnly.MinValue;
+                var cleanCityIds = NormalizeIds(dto.PreferredCityIds);
+
+                var validCityCount = await _context.Cities
+                    .CountAsync(c => cleanCityIds.Contains(c.CityID));
+
+                if (validCityCount != cleanCityIds.Count)
+                    throw new InvalidOperationException("Some selected cities do not exist");
+
+                user.Profile.PreferredCityIdsJson = JsonSerializer.Serialize(cleanCityIds);
             }
 
-            user.Profile.BudgetLevel = dto.BudgetLevel.Trim();
-            user.Profile.PreferredCityIdsJson = JsonSerializer.Serialize(cleanCityIds);
-            user.Profile.InterestCategoryIdsJson = JsonSerializer.Serialize(cleanCategoryIds);
+            if (dto.InterestCategoryIds != null)
+            {
+                var cleanCategoryIds = NormalizeIds(dto.InterestCategoryIds);
+
+                var validCategoryCount = await _context.Categories
+                    .CountAsync(c => cleanCategoryIds.Contains(c.CategoryID));
+
+                if (validCategoryCount != cleanCategoryIds.Count)
+                    throw new InvalidOperationException("Some selected categories do not exist");
+
+                user.Profile.InterestCategoryIdsJson = JsonSerializer.Serialize(cleanCategoryIds);
+            }
+
             user.Profile.UpdatedAt = now;
 
             await _context.SaveChangesAsync();
@@ -173,11 +169,11 @@ namespace NileGuideApi.Services
                 Nationality = user.Nationality,
                 DateOfBirth = user.DateOfBirth,
                 Age = CalculateAge(user.DateOfBirth),
+                ProfilePictureUrl = user.ProfilePictureUrl ?? string.Empty,
 
                 HasTravelDates = profile.HasTravelDates,
-                TravelStartDate = profile.TravelStartDate,
-                TravelEndDate = profile.TravelEndDate,
-                BudgetLevel = profile.BudgetLevel,
+                TravelStartDate = GetTravelDateOrNull(profile.HasTravelDates, profile.TravelStartDate),
+                TravelEndDate = GetTravelDateOrNull(profile.HasTravelDates, profile.TravelEndDate),
 
                 PreferredCityIds = preferredCityIds,
                 PreferredCities = preferredCities,
@@ -203,6 +199,44 @@ namespace NileGuideApi.Services
             return age;
         }
 
+        private static void ApplyTravelDates(UserProfile profile, UpdateUserProfileDto dto)
+        {
+            var hasTravelDates = dto.HasTravelDates ?? profile.HasTravelDates;
+            var travelStartDate = dto.TravelStartDate ?? profile.TravelStartDate;
+            var travelEndDate = dto.TravelEndDate ?? profile.TravelEndDate;
+
+            if (!hasTravelDates && (dto.TravelStartDate.HasValue || dto.TravelEndDate.HasValue))
+            {
+                hasTravelDates = true;
+            }
+
+            if (!hasTravelDates)
+            {
+                profile.HasTravelDates = false;
+                profile.TravelStartDate = DateOnly.MinValue;
+                profile.TravelEndDate = DateOnly.MinValue;
+                return;
+            }
+
+            if (travelStartDate == DateOnly.MinValue || travelEndDate == DateOnly.MinValue)
+                throw new InvalidOperationException("TravelStartDate and TravelEndDate are required when HasTravelDates is true");
+
+            if (travelEndDate < travelStartDate)
+                throw new InvalidOperationException("TravelEndDate must be after or equal TravelStartDate");
+
+            profile.HasTravelDates = true;
+            profile.TravelStartDate = travelStartDate;
+            profile.TravelEndDate = travelEndDate;
+        }
+
+        private static DateOnly? GetTravelDateOrNull(bool hasTravelDates, DateOnly value)
+        {
+            if (!hasTravelDates || value == DateOnly.MinValue)
+                return null;
+
+            return value;
+        }
+
         private static List<int> NormalizeIds(List<int>? ids)
         {
             return ids?
@@ -225,5 +259,6 @@ namespace NileGuideApi.Services
                 return new List<int>();
             }
         }
+
     }
 }

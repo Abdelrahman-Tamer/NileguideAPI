@@ -145,6 +145,7 @@ builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+
 // The frontend already depends on these policy names, so only the internals are tuned.
 builder.Services.AddRateLimiter(opt =>
 {

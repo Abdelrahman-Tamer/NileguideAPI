@@ -16,13 +16,14 @@ namespace NileGuideApi.DTOs
 
         public int Age { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("profile_picture_url")]
+        public string ProfilePictureUrl { get; set; } = string.Empty;
+
         public bool HasTravelDates { get; set; }
 
-        public DateOnly TravelStartDate { get; set; }
+        public DateOnly? TravelStartDate { get; set; }
 
-        public DateOnly TravelEndDate { get; set; }
-
-        public string BudgetLevel { get; set; } = string.Empty;
+        public DateOnly? TravelEndDate { get; set; }
 
         public List<int> PreferredCityIds { get; set; } = new();
 
@@ -60,21 +61,15 @@ namespace NileGuideApi.DTOs
         [MaxLength(100)]
         public string? Nationality { get; set; }
 
-        public bool HasTravelDates { get; set; }
+        public bool? HasTravelDates { get; set; }
 
-        public DateOnly TravelStartDate { get; set; } = DateOnly.MinValue;
+        public DateOnly? TravelStartDate { get; set; }
 
-        public DateOnly TravelEndDate { get; set; } = DateOnly.MinValue;
+        public DateOnly? TravelEndDate { get; set; }
 
-        [Required(ErrorMessage = "BudgetLevel is required")]
-        [MaxLength(50)]
-        public string BudgetLevel { get; set; } = string.Empty;
+        public List<int>? PreferredCityIds { get; set; }
 
-        [Required(ErrorMessage = "PreferredCityIds is required")]
-        public List<int> PreferredCityIds { get; set; } = new();
-
-        [Required(ErrorMessage = "InterestCategoryIds is required")]
-        public List<int> InterestCategoryIds { get; set; } = new();
+        public List<int>? InterestCategoryIds { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
@@ -127,51 +122,27 @@ namespace NileGuideApi.DTOs
                     new[] { nameof(Nationality) });
             }
 
-            var allowedBudgets = new[] { "Economy", "Comfort", "Luxury" };
-
-            if (!allowedBudgets.Contains(BudgetLevel?.Trim(), StringComparer.OrdinalIgnoreCase))
+            if (PreferredCityIds?.Any(id => id <= 0) == true)
             {
                 yield return new ValidationResult(
-                    "BudgetLevel must be Economy, Comfort, or Luxury",
-                    new[] { nameof(BudgetLevel) });
-            }
-
-            if (PreferredCityIds == null || PreferredCityIds.Count == 0)
-            {
-                yield return new ValidationResult(
-                    "PreferredCityIds must contain at least one city",
+                    "PreferredCityIds must contain positive values only",
                     new[] { nameof(PreferredCityIds) });
             }
 
-            if (InterestCategoryIds == null || InterestCategoryIds.Count == 0)
+            if (InterestCategoryIds?.Any(id => id <= 0) == true)
             {
                 yield return new ValidationResult(
-                    "InterestCategoryIds must contain at least one category",
+                    "InterestCategoryIds must contain positive values only",
                     new[] { nameof(InterestCategoryIds) });
             }
 
-            if (HasTravelDates)
+            if (TravelStartDate.HasValue &&
+                TravelEndDate.HasValue &&
+                TravelEndDate.Value < TravelStartDate.Value)
             {
-                if (TravelStartDate == DateOnly.MinValue)
-                {
-                    yield return new ValidationResult(
-                        "TravelStartDate is required when HasTravelDates is true",
-                        new[] { nameof(TravelStartDate) });
-                }
-
-                if (TravelEndDate == DateOnly.MinValue)
-                {
-                    yield return new ValidationResult(
-                        "TravelEndDate is required when HasTravelDates is true",
-                        new[] { nameof(TravelEndDate) });
-                }
-
-                if (TravelEndDate < TravelStartDate)
-                {
-                    yield return new ValidationResult(
-                        "TravelEndDate must be after or equal TravelStartDate",
-                        new[] { nameof(TravelEndDate) });
-                }
+                yield return new ValidationResult(
+                    "TravelEndDate must be after or equal TravelStartDate",
+                    new[] { nameof(TravelEndDate) });
             }
         }
 
