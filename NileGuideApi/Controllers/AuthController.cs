@@ -49,7 +49,7 @@ namespace NileGuideApi.Controllers
         /// <remarks>
         /// Creates the user, stores a hashed password, and returns an access token plus refresh token.
         /// </remarks>
-        /// <param name="dto">Registration details including email, password, full name, nationality, and optional date of birth.</param>
+        /// <param name="dto">Registration details including email, password, full name, nationality, and date of birth.</param>
         /// <returns>The token pair and basic authenticated user metadata.</returns>
         /// <response code="200">Registration succeeded and a token pair was issued.</response>
         /// <response code="400">Returned when the request body fails validation.</response>
@@ -582,15 +582,16 @@ namespace NileGuideApi.Controllers
             return int.TryParse(idStr, out var userId) ? userId : null;
         }
 
-        private static int? CalculateAge(DateOnly? dateOfBirth)
+        private static int CalculateAge(DateOnly dateOfBirth)
         {
-            if (!dateOfBirth.HasValue)
-                return null;
-
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var age = today.Year - dateOfBirth.Value.Year;
-            if (dateOfBirth.Value > today.AddYears(-age))
+
+            var age = today.Year - dateOfBirth.Year;
+
+            if (dateOfBirth > today.AddYears(-age))
+            {
                 age--;
+            }
 
             return age;
         }

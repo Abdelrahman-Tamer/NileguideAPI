@@ -59,8 +59,8 @@ type AuthResponse = {
   expiresAtUtc: string;
   userId: number;
   role: string;
-  dateOfBirth: string | null;
-  age: number | null;
+  dateOfBirth: string;
+  age: number;
   profile_picture_url: string | null;
   refreshToken: string;
   refreshTokenExpiresAtUtc: string;
@@ -79,8 +79,8 @@ type UserProfile = {
   email: string;
   fullName: string;
   nationality: string;
-  dateOfBirth: string | null;
-  age: number | null;
+  dateOfBirth: string;
+  age: number;
   profile_picture_url: string | null;
   role: string;
 };
@@ -107,7 +107,7 @@ Body:
 }
 ```
 
-`dateOfBirth` is optional. If sent, it must not be in the future.
+`dateOfBirth` is required and must be in the past.
 
 Success: `200 OK`
 
@@ -127,7 +127,7 @@ Success: `200 OK`
 
 Errors:
 
-- `400 Bad Request`: invalid email, password, fullName, nationality, or future dateOfBirth.
+- `400 Bad Request`: invalid email, password, fullName, nationality, missing dateOfBirth, or future dateOfBirth.
 - `409 Conflict`: email already exists.
 - `429 Too Many Requests`: register rate limit exceeded.
 

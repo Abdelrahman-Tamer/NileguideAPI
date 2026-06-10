@@ -79,6 +79,7 @@ namespace NileGuideApi.Data
 
             modelBuilder.Entity<User>()
                 .Property(u => u.DateOfBirth)
+                .IsRequired()
                 .HasColumnName("date_of_birth")
                 .HasColumnType("date")
                 .HasColumnOrder(6);

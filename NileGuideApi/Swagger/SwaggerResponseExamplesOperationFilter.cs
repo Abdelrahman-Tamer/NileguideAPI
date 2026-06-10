@@ -92,7 +92,7 @@ namespace NileGuideApi.Swagger
                         ("Password", "Password must be at least 8 characters and include letters and numbers"),
                         ("FullName", "FullName must be at least 2 characters"),
                         ("Nationality", "Nationality is required"),
-                        ("DateOfBirth", "DateOfBirth cannot be in the future"));
+                        ("DateOfBirth", "DateOfBirth is required and must be in the past"));
                     break;
 
                 case ("POST", "/api/auth/login"):

@@ -55,14 +55,14 @@ namespace NileGuideApi.DTOs
         public string Nationality { get; set; } = string.Empty;
 
         /// <summary>
-        /// User date of birth, when provided.
+        /// User date of birth.
         /// </summary>
-        public DateOnly? DateOfBirth { get; set; }
+        public DateOnly DateOfBirth { get; set; }
 
         /// <summary>
         /// Current age calculated from DateOfBirth. Not stored in the database.
         /// </summary>
-        public int? Age { get; set; }
+        public int Age { get; set; }
 
         /// <summary>
         /// Public profile picture URL, when uploaded.

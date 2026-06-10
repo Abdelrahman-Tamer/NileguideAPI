@@ -40,17 +40,41 @@ namespace NileGuideApi.DTOs
         public string Nationality { get; set; } = string.Empty;
 
         /// <summary>
-        /// Optional user date of birth. Sent as YYYY-MM-DD and used to calculate age in responses.
+        /// Required user date of birth. Sent as YYYY-MM-DD and used to calculate age in responses.
         /// </summary>
+        [Required(ErrorMessage = "DateOfBirth is required")]
         [DataType(DataType.Date)]
-        public DateOnly? DateOfBirth { get; set; }
+        public DateOnly DateOfBirth { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (DateOfBirth.HasValue && DateOfBirth.Value > DateOnly.FromDateTime(DateTime.UtcNow))
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            if (DateOfBirth == DateOnly.MinValue)
             {
                 yield return new ValidationResult(
-                    "DateOfBirth cannot be in the future",
+                    "DateOfBirth is required",
+                    new[] { nameof(DateOfBirth) });
+            }
+
+            if (DateOfBirth >= today)
+            {
+                yield return new ValidationResult(
+                    "DateOfBirth must be in the past",
+                    new[] { nameof(DateOfBirth) });
+            }
+
+            var age = today.Year - DateOfBirth.Year;
+
+            if (DateOfBirth > today.AddYears(-age))
+            {
+                age--;
+            }
+
+            if (age < 1 || age > 120)
+            {
+                yield return new ValidationResult(
+                    "Age must be between 1 and 120",
                     new[] { nameof(DateOfBirth) });
             }
         }
@@ -118,14 +142,14 @@ namespace NileGuideApi.DTOs
         public string Role { get; set; } = string.Empty;
 
         /// <summary>
-        /// User date of birth, when provided during registration.
+        /// User date of birth.
         /// </summary>
-        public DateOnly? DateOfBirth { get; set; }
+        public DateOnly DateOfBirth { get; set; }
 
         /// <summary>
         /// Current age calculated from DateOfBirth. Not stored in the database.
         /// </summary>
-        public int? Age { get; set; }
+        public int Age { get; set; }
 
         /// <summary>
         /// Public profile picture URL, when uploaded.
