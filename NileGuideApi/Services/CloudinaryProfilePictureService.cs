@@ -84,6 +84,29 @@ namespace NileGuideApi.Services
             }
         }
 
+        public async Task DeleteAsync(string? imageUrl, int userId)
+        {
+            var publicId = TryGetPublicIdFromUrl(imageUrl);
+            if (string.IsNullOrWhiteSpace(publicId))
+                return;
+
+            var cloudinary = CreateCloudinary();
+            var result = await cloudinary.DestroyAsync(new DeletionParams(publicId)
+            {
+                ResourceType = ResourceType.Image,
+                Invalidate = true
+            });
+
+            if (string.Equals(result.Result, "ok", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(result.Result, "not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _logger.LogWarning("Cloudinary profile picture deletion returned {Result} for public id {PublicId}", result.Result, publicId);
+            throw new InvalidOperationException("Profile picture deletion failed");
+        }
+
         private Cloudinary CreateCloudinary()
         {
             var cloudName = GetConfiguredValue(_options.CloudName, "Cloudinary:CloudName", "CLOUDINARY_CLOUD_NAME");

@@ -6,5 +6,6 @@ namespace NileGuideApi.Services
     {
         Task<string> UploadAsync(IFormFile image, int userId);
         Task DeleteByUrlAsync(string? imageUrl, int userId);
+        Task DeleteAsync(string? imageUrl, int userId);
     }
 }

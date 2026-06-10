@@ -59,7 +59,7 @@ namespace NileGuideApi.Controllers
             if (validationError != null)
                 return BadRequest(new { message = validationError });
 
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == authenticatedUserId.Value);
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == authenticatedUserId.Value && x.DeletedAt == null);
             if (user == null)
                 return NotFound(new { message = "User not found" });
 
@@ -85,6 +85,44 @@ namespace NileGuideApi.Controllers
             }
         }
 
+        [HttpDelete("me/profile-picture")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status502BadGateway)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status503ServiceUnavailable)]
+        public async Task<IActionResult> DeleteMyProfilePicture()
+        {
+            var authenticatedUserId = GetAuthenticatedUserId();
+            if (authenticatedUserId == null)
+                return Unauthorized(new { message = "Invalid token" });
+
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == authenticatedUserId.Value && x.DeletedAt == null);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            if (string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+                return NoContent();
+
+            try
+            {
+                await _profilePictureService.DeleteAsync(user.ProfilePictureUrl, user.Id);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "Cloudinary is not configured")
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Cloudinary is not configured" });
+            }
+            catch (InvalidOperationException)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Profile picture deletion failed" });
+            }
+
+            user.ProfilePictureUrl = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
         private static string? ValidateImage(IFormFile? image)
         {
             if (image == null || image.Length == 0)
