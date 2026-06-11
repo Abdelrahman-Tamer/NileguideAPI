@@ -64,8 +64,8 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     {
         sql.EnableRetryOnFailure(
             maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorNumbersToAdd: null);
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: new[] { 40613 });
     }));
 
 // Trust proxy headers so redirects, auth, and rate limiting see the real client address.

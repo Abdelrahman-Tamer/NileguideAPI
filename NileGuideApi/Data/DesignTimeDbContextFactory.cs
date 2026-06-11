@@ -30,8 +30,8 @@ namespace NileGuideApi.Data
             {
                 sql.EnableRetryOnFailure(
                     maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(10),
-                    errorNumbersToAdd: null);
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: new[] { 40613 });
             });
 
             return new AppDbContext(optionsBuilder.Options);
