@@ -27,6 +27,8 @@ namespace NileGuideApi.DTOs
         public int ReviewCount { get; set; }
         public bool IsActive { get; set; }
         public List<ActivityImageDto> Images { get; set; } = new();
+        public List<AdminBookingLinkDto> BookingLinks { get; set; } = new();
+        public List<AdminActivityHourDto> ActivityHours { get; set; } = new();
     }
 
     public class ActivityImageDto
@@ -35,6 +37,51 @@ namespace NileGuideApi.DTOs
         public string Url { get; set; } = string.Empty;
         public bool IsPrimary { get; set; }
         public int SortOrder { get; set; }
+    }
+
+    public class AdminBookingLinkDto
+    {
+        public int BookingLinkId { get; set; }
+        public string Provider { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class AdminActivityHourDto
+    {
+        public int ActivityHourId { get; set; }
+        public byte OpenHour { get; set; }
+        public string OpenAmPm { get; set; } = string.Empty;
+        public byte CloseHour { get; set; }
+        public string CloseAmPm { get; set; } = string.Empty;
+        public string OpenTime { get; set; } = string.Empty;
+        public string CloseTime { get; set; } = string.Empty;
+    }
+
+    public class CreateBookingLinkDto
+    {
+        [Required]
+        [MaxLength(50)]
+        public string Provider { get; set; } = string.Empty;
+
+        [Required]
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class CreateActivityHourDto
+    {
+        [Range(1, 12)]
+        public byte OpenHour { get; set; }
+
+        [Required]
+        [RegularExpression("^(AM|PM|am|pm)$")]
+        public string OpenAmPm { get; set; } = string.Empty;
+
+        [Range(1, 12)]
+        public byte CloseHour { get; set; }
+
+        [Required]
+        [RegularExpression("^(AM|PM|am|pm)$")]
+        public string CloseAmPm { get; set; } = string.Empty;
     }
 
     public class CreateActivityDto
@@ -101,6 +148,10 @@ namespace NileGuideApi.DTOs
 
         [Required]
         public List<IFormFile> Images { get; set; } = new();
+
+        public List<CreateBookingLinkDto> BookingLinks { get; set; } = new();
+
+        public List<CreateActivityHourDto> ActivityHours { get; set; } = new();
     }
 
     public class UpdateActivityDto
@@ -168,5 +219,9 @@ namespace NileGuideApi.DTOs
         public bool ReplaceImages { get; set; } = false;
 
         public List<IFormFile>? Images { get; set; }
+
+        public List<CreateBookingLinkDto>? BookingLinks { get; set; }
+
+        public List<CreateActivityHourDto>? ActivityHours { get; set; }
     }
 }

@@ -25,6 +25,9 @@ namespace NileGuideApi.Services
 
         public async Task<AdminActivityDetailsDto> CreateAsync(CreateActivityDto dto)
         {
+            var bookingLinkDtos = dto.BookingLinks ?? new List<CreateBookingLinkDto>();
+            var activityHourDtos = dto.ActivityHours ?? new List<CreateActivityHourDto>();
+
             var categoryExists = await _context.Categories
                 .AnyAsync(x => x.CategoryID == dto.CategoryId && x.DeletedAt == null);
 
@@ -53,6 +56,8 @@ namespace NileGuideApi.Services
                 dto.GroupSize,
                 dto.Price,
                 dto.PriceCurrency);
+            ValidateBookingLinks(bookingLinkDtos);
+            ValidateActivityHours(activityHourDtos);
 
             if (dto.Images == null || dto.Images.Count == 0)
                 throw new InvalidOperationException("At least one image is required");
@@ -99,6 +104,33 @@ namespace NileGuideApi.Services
             }).ToList();
 
             _context.ActivityImages.AddRange(images);
+
+            if (bookingLinkDtos.Count > 0)
+            {
+                var bookingLinks = bookingLinkDtos.Select(link => new BookingLink
+                {
+                    ActivityID = activity.ActivityID,
+                    Provider = link.Provider.Trim(),
+                    Url = link.Url.Trim()
+                });
+
+                _context.BookingLinks.AddRange(bookingLinks);
+            }
+
+            if (activityHourDtos.Count > 0)
+            {
+                var activityHours = activityHourDtos.Select(hour => new ActivityHour
+                {
+                    ActivityID = activity.ActivityID,
+                    OpenHour = hour.OpenHour,
+                    OpenAmPm = NormalizePeriod(hour.OpenAmPm),
+                    CloseHour = hour.CloseHour,
+                    CloseAmPm = NormalizePeriod(hour.CloseAmPm)
+                });
+
+                _context.ActivityHours.AddRange(activityHours);
+            }
+
             await _context.SaveChangesAsync();
 
             await _hubContext.Clients.All.SendAsync("ActivitiesUpdated");
@@ -106,6 +138,8 @@ namespace NileGuideApi.Services
             var createdActivity = await _context.Activities
                 .AsNoTracking()
                 .Include(x => x.ActivityImages)
+                .Include(x => x.BookingLinks)
+                .Include(x => x.ActivityHours)
                 .FirstAsync(x => x.ActivityID == activity.ActivityID);
 
             return MapToDetailsDto(createdActivity);
@@ -115,6 +149,8 @@ namespace NileGuideApi.Services
         {
             var activity = await _context.Activities
                 .Include(x => x.ActivityImages)
+                .Include(x => x.BookingLinks)
+                .Include(x => x.ActivityHours)
                 .FirstOrDefaultAsync(x => x.ActivityID == id && x.DeletedAt == null);
 
             if (activity == null)
@@ -150,6 +186,11 @@ namespace NileGuideApi.Services
                 dto.GroupSize,
                 dto.Price,
                 dto.PriceCurrency);
+            if (dto.BookingLinks != null)
+                ValidateBookingLinks(dto.BookingLinks);
+
+            if (dto.ActivityHours != null)
+                ValidateActivityHours(dto.ActivityHours);
 
             activity.ActivityName = dto.ActivityName.Trim();
             activity.Description = dto.Description.Trim();
@@ -202,12 +243,50 @@ namespace NileGuideApi.Services
                 _context.ActivityImages.AddRange(newImages);
             }
 
+            if (dto.BookingLinks != null)
+            {
+                _context.BookingLinks.RemoveRange(activity.BookingLinks);
+
+                if (dto.BookingLinks.Count > 0)
+                {
+                    var bookingLinks = dto.BookingLinks.Select(link => new BookingLink
+                    {
+                        ActivityID = id,
+                        Provider = link.Provider.Trim(),
+                        Url = link.Url.Trim()
+                    });
+
+                    _context.BookingLinks.AddRange(bookingLinks);
+                }
+            }
+
+            if (dto.ActivityHours != null)
+            {
+                _context.ActivityHours.RemoveRange(activity.ActivityHours);
+
+                if (dto.ActivityHours.Count > 0)
+                {
+                    var activityHours = dto.ActivityHours.Select(hour => new ActivityHour
+                    {
+                        ActivityID = id,
+                        OpenHour = hour.OpenHour,
+                        OpenAmPm = NormalizePeriod(hour.OpenAmPm),
+                        CloseHour = hour.CloseHour,
+                        CloseAmPm = NormalizePeriod(hour.CloseAmPm)
+                    });
+
+                    _context.ActivityHours.AddRange(activityHours);
+                }
+            }
+
             await _context.SaveChangesAsync();
             await _hubContext.Clients.All.SendAsync("ActivitiesUpdated");
 
             var updatedActivity = await _context.Activities
                 .AsNoTracking()
                 .Include(x => x.ActivityImages)
+                .Include(x => x.BookingLinks)
+                .Include(x => x.ActivityHours)
                 .FirstAsync(x => x.ActivityID == id && x.DeletedAt == null);
 
             return MapToDetailsDto(updatedActivity);
@@ -269,6 +348,39 @@ namespace NileGuideApi.Services
                 throw new InvalidOperationException("Price currency is required");
         }
 
+        private static void ValidateBookingLinks(IReadOnlyCollection<CreateBookingLinkDto> bookingLinks)
+        {
+            foreach (var bookingLink in bookingLinks)
+            {
+                if (string.IsNullOrWhiteSpace(bookingLink.Provider))
+                    throw new InvalidOperationException("Booking link provider is required");
+
+                if (bookingLink.Provider.Trim().Length > 50)
+                    throw new InvalidOperationException("Booking link provider must be 50 characters or fewer");
+
+                if (string.IsNullOrWhiteSpace(bookingLink.Url))
+                    throw new InvalidOperationException("Booking link url is required");
+            }
+        }
+
+        private static void ValidateActivityHours(IReadOnlyCollection<CreateActivityHourDto> activityHours)
+        {
+            foreach (var activityHour in activityHours)
+            {
+                if (activityHour.OpenHour is < 1 or > 12)
+                    throw new InvalidOperationException("Activity open hour must be between 1 and 12");
+
+                if (activityHour.CloseHour is < 1 or > 12)
+                    throw new InvalidOperationException("Activity close hour must be between 1 and 12");
+
+                if (!IsValidPeriod(activityHour.OpenAmPm))
+                    throw new InvalidOperationException("Activity open period must be AM or PM");
+
+                if (!IsValidPeriod(activityHour.CloseAmPm))
+                    throw new InvalidOperationException("Activity close period must be AM or PM");
+            }
+        }
+
         private static AdminActivityDetailsDto MapToDetailsDto(Activity activity)
         {
             return new AdminActivityDetailsDto
@@ -305,8 +417,46 @@ namespace NileGuideApi.Services
                         IsPrimary = x.IsPrimary,
                         SortOrder = x.SortOrder
                     })
+                    .ToList(),
+                BookingLinks = activity.BookingLinks
+                    .OrderBy(x => x.Id)
+                    .Select(x => new AdminBookingLinkDto
+                    {
+                        BookingLinkId = x.Id,
+                        Provider = x.Provider ?? string.Empty,
+                        Url = x.Url ?? string.Empty
+                    })
+                    .ToList(),
+                ActivityHours = activity.ActivityHours
+                    .OrderBy(x => x.Id)
+                    .Select(x => new AdminActivityHourDto
+                    {
+                        ActivityHourId = x.Id,
+                        OpenHour = x.OpenHour,
+                        OpenAmPm = NormalizePeriod(x.OpenAmPm),
+                        CloseHour = x.CloseHour,
+                        CloseAmPm = NormalizePeriod(x.CloseAmPm),
+                        OpenTime = FormatHourWithPeriod(x.OpenHour, x.OpenAmPm),
+                        CloseTime = FormatHourWithPeriod(x.CloseHour, x.CloseAmPm)
+                    })
                     .ToList()
             };
+        }
+
+        private static string FormatHourWithPeriod(byte hour, string? period)
+        {
+            return $"{hour}:00 {NormalizePeriod(period)}".Trim();
+        }
+
+        private static string NormalizePeriod(string? period)
+        {
+            return (period ?? string.Empty).Trim().ToUpperInvariant();
+        }
+
+        private static bool IsValidPeriod(string? period)
+        {
+            var normalizedPeriod = NormalizePeriod(period);
+            return normalizedPeriod is "AM" or "PM";
         }
     }
 }
