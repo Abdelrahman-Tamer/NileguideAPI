@@ -18,6 +18,14 @@ namespace NileGuideApi.Controllers
             _adminActivityService = adminActivityService;
         }
 
+        [HttpGet]
+        [ProducesResponseType(typeof(PagedResultDto<AdminActivityDetailsDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll([FromQuery] ActivityFilterDto filter)
+        {
+            var result = await _adminActivityService.GetAllAsync(filter);
+            return Ok(result);
+        }
+
         [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Create([FromForm] CreateActivityDto dto)

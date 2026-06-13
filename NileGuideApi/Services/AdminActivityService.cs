@@ -23,6 +23,70 @@ namespace NileGuideApi.Services
             _hubContext = hubContext;
         }
 
+        public async Task<PagedResultDto<AdminActivityDetailsDto>> GetAllAsync(ActivityFilterDto filter)
+        {
+            if (filter.Page <= 0)
+                filter.Page = 1;
+
+            if (filter.PageSize <= 0)
+                filter.PageSize = 9;
+
+            var query = _context.Activities
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.City)
+                .Include(x => x.ActivityImages)
+                .Include(x => x.BookingLinks)
+                .Include(x => x.ActivityHours)
+                .AsSplitQuery()
+                .AsQueryable();
+
+            if (filter.CategoryIds != null && filter.CategoryIds.Any())
+            {
+                var categoryIds = filter.CategoryIds.Distinct().ToList();
+                query = query.Where(x => categoryIds.Contains(x.CategoryID));
+            }
+
+            if (filter.CityIds != null && filter.CityIds.Any())
+            {
+                var cityIds = filter.CityIds.Distinct().ToList();
+                query = query.Where(x => cityIds.Contains(x.CityID));
+            }
+
+            var search = filter.Search?.Trim();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(x =>
+                    x.ActivityName.Contains(search) ||
+                    (x.Description != null && x.Description.Contains(search)));
+            }
+
+            query = (filter.SortBy ?? "default").Trim().ToLowerInvariant() switch
+            {
+                "pricelowtohigh" => query.OrderBy(x => x.MinPrice),
+                "pricehightolow" => query.OrderByDescending(x => x.MinPrice),
+                "name" => query.OrderBy(x => x.ActivityName),
+                _ => query.OrderBy(x => x.ActivityID)
+            };
+
+            var totalCount = await query.CountAsync();
+
+            var activities = await query
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToListAsync();
+
+            return new PagedResultDto<AdminActivityDetailsDto>
+            {
+                TotalCount = totalCount,
+                Page = filter.Page,
+                PageSize = filter.PageSize,
+                Items = activities
+                    .Select(MapToDetailsDto)
+                    .ToList()
+            };
+        }
+
         public async Task<AdminActivityDetailsDto> CreateAsync(CreateActivityDto dto)
         {
             var bookingLinkDtos = dto.BookingLinks ?? new List<CreateBookingLinkDto>();
@@ -137,6 +201,8 @@ namespace NileGuideApi.Services
 
             var createdActivity = await _context.Activities
                 .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.City)
                 .Include(x => x.ActivityImages)
                 .Include(x => x.BookingLinks)
                 .Include(x => x.ActivityHours)
@@ -284,6 +350,8 @@ namespace NileGuideApi.Services
 
             var updatedActivity = await _context.Activities
                 .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.City)
                 .Include(x => x.ActivityImages)
                 .Include(x => x.BookingLinks)
                 .Include(x => x.ActivityHours)
@@ -389,7 +457,9 @@ namespace NileGuideApi.Services
                 ActivityName = activity.ActivityName,
                 Description = activity.Description ?? string.Empty,
                 CategoryId = activity.CategoryID,
+                CategoryName = activity.Category?.CategoryName ?? string.Empty,
                 CityId = activity.CityID,
+                CityName = activity.City?.CityName ?? string.Empty,
                 Price = activity.Price ?? 0,
                 MinPrice = activity.MinPrice,
                 PriceCurrency = activity.PriceCurrency,

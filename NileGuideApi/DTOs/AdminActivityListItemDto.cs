@@ -9,7 +9,9 @@ namespace NileGuideApi.DTOs
         public string ActivityName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
         public int CityId { get; set; }
+        public string CityName { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public decimal? MinPrice { get; set; }
         public string PriceCurrency { get; set; } = "USD";
