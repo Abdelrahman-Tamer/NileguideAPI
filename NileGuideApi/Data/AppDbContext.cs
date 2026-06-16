@@ -53,6 +53,9 @@ namespace NileGuideApi.Data
         // View logs for activity details pages.
         public DbSet<ActivityView> ActivityViews { get; set; } = null!;
 
+        // Authenticated chat sessions with JSON message history.
+        public DbSet<ChatSession> ChatSessions { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -128,6 +131,12 @@ namespace NileGuideApi.Data
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.PlanItems)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.ChatSessions)
                 .WithOne(x => x.User)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -684,6 +693,50 @@ namespace NileGuideApi.Data
 
             modelBuilder.Entity<ActivityView>()
                 .HasQueryFilter(x => x.Activity != null && x.Activity.DeletedAt == null);
+
+            modelBuilder.Entity<ChatSession>()
+                .ToTable("ChatSessions", tableBuilder =>
+                {
+                    tableBuilder.HasCheckConstraint(
+                        "CK_ChatSessions_Messages_IsJson",
+                        "ISJSON([Messages]) = 1");
+                });
+
+            modelBuilder.Entity<ChatSession>()
+                .HasKey(x => x.Id);
+
+            modelBuilder.Entity<ChatSession>()
+                .Property(x => x.Id)
+                .ValueGeneratedNever();
+
+            modelBuilder.Entity<ChatSession>()
+                .Property(x => x.UserId)
+                .IsRequired();
+
+            modelBuilder.Entity<ChatSession>()
+                .Property(x => x.Title)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasColumnType("nvarchar(100)")
+                .HasDefaultValue("New chat");
+
+            modelBuilder.Entity<ChatSession>()
+                .Property(x => x.Messages)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)")
+                .HasDefaultValue("[]");
+
+            modelBuilder.Entity<ChatSession>()
+                .Property(x => x.CreatedAt)
+                .IsRequired()
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<ChatSession>()
+                .HasIndex(x => new { x.UserId, x.CreatedAt });
+
+            modelBuilder.Entity<ChatSession>()
+                .HasQueryFilter(x => x.User != null && x.User.DeletedAt == null);
 
             modelBuilder.Entity<ActivityHour>()
                 .ToTable("ActivityHours", tableBuilder =>
