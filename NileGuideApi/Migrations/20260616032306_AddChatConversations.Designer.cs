@@ -12,8 +12,8 @@ using NileGuideApi.Data;
 namespace NileGuideApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260615060716_AddChatSessions")]
-    partial class AddChatSessions
+    [Migration("20260616032306_AddChatConversations")]
+    partial class AddChatConversations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -345,40 +345,18 @@ namespace NileGuideApi.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.ChatSession", b =>
+            modelBuilder.Entity("NileGuideApi.Models.ChatConversation", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("Messages")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("[]");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasDefaultValue("New chat");
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<string>("ConversationId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
-                    b.HasIndex("UserId", "CreatedAt");
+                    b.HasKey("UserId", "ConversationId");
 
-                    b.ToTable("ChatSessions", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ChatSessions_Messages_IsJson", "ISJSON([Messages]) = 1");
-                        });
+                    b.ToTable("ChatConversations", (string)null);
                 });
 
             modelBuilder.Entity("NileGuideApi.Models.City", b =>
@@ -870,10 +848,10 @@ namespace NileGuideApi.Migrations
                     b.Navigation("Activity");
                 });
 
-            modelBuilder.Entity("NileGuideApi.Models.ChatSession", b =>
+            modelBuilder.Entity("NileGuideApi.Models.ChatConversation", b =>
                 {
                     b.HasOne("NileGuideApi.Models.User", "User")
-                        .WithMany("ChatSessions")
+                        .WithMany("ChatConversations")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -996,7 +974,7 @@ namespace NileGuideApi.Migrations
 
             modelBuilder.Entity("NileGuideApi.Models.User", b =>
                 {
-                    b.Navigation("ChatSessions");
+                    b.Navigation("ChatConversations");
 
                     b.Navigation("PlanItems");
 

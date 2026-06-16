@@ -24,7 +24,7 @@ namespace NileGuideApi.Models
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
         public ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
         public ICollection<PlanItem> PlanItems { get; set; } = new List<PlanItem>();
-        public ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
+        public ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
         public UserProfile? Profile { get; set; }
     }
 }
