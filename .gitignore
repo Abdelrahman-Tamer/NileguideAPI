@@ -389,6 +389,7 @@ appsettings.*.local.json
 # Keep this repository focused on source and required project files
 docs/
 *.md
+!README.md
 *.txt
 *.http
 *.svg
