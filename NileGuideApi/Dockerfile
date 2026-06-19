@@ -1,13 +1,17 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /app
-COPY *.csproj ./
-RUN dotnet restore
-COPY . ./
-RUN dotnet publish -c Release -o out
+WORKDIR /src
+
+COPY ["NileGuideApi.csproj", "./"]
+RUN dotnet restore "NileGuideApi.csproj"
+
+COPY . .
+RUN dotnet publish "NileGuideApi.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-COPY --from=build /app/out ./
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
+
+COPY --from=build /app/publish ./
+
 ENTRYPOINT ["dotnet", "NileGuideApi.dll"]

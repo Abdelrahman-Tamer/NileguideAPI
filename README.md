@@ -198,13 +198,20 @@ The API is configured for known frontend origins in application configuration/co
 
 ## Docker
 
+Build the image from the API project directory so the Dockerfile context is correct:
+
 ```bash
 cd NileGuideApi
 docker build -t nileguide-api .
-docker run -p 8080:8080 --env-file .env nileguide-api
 ```
 
-The container listens on port `8080`.
+Run the container with environment variables or an ignored env file:
+
+```bash
+docker run --rm -p 8080:8080 --env-file .env nileguide-api
+```
+
+The container listens on port `8080`. Startup requires the same configuration listed above, including a reachable SQL Server connection. The API applies pending EF Core migrations during startup.
 
 ## Quality Bar
 
