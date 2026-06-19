@@ -64,7 +64,7 @@ Required configuration:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=.;Database=NileGuideDb;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Database-ConnectionString"
   },
   "Jwt": {
     "Key": "at-least-32-bytes-secret-key-value",
