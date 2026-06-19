@@ -385,3 +385,45 @@ appsettings.*.local.json
 *.tgz
 *.bak
 *.backup
+
+# Keep this repository focused on source and required project files
+docs/
+*.md
+*.txt
+*.http
+*.svg
+
+# Editor workspace state
+.vscode/
+.idea/
+*.code-workspace
+launchSettings.json
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local runtime data
+uploads/
+Upload/
+Uploads/
+wwwroot/uploads/
+wwwroot/Upload/
+wwwroot/Uploads/
+*.sqlite
+*.sqlite3
+*.db
+
+# Keep required project/configuration files trackable
+!*.sln
+!*.slnx
+!*.csproj
+!*.props
+!*.targets
+!global.json
+!Dockerfile
+!docker-compose*.yml
+!appsettings.json
+!.gitattributes
+!.gitignore
