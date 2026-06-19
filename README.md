@@ -1,46 +1,89 @@
 <div align="center">
 
-![NileGuide API](https://capsule-render.vercel.app/api?type=waving&height=180&color=0:0f172a,45:0369a1,100:14b8a6&text=NileGuide%20API&fontColor=ffffff&fontSize=44&fontAlignY=35&desc=ASP.NET%20Core%20backend%20for%20a%20modern%20Egypt%20travel%20platform&descAlignY=58&animation=fadeIn)
+![NileGuide API](https://capsule-render.vercel.app/api?type=waving&height=220&color=0:0F172A,35:0369A1,70:14B8A6,100:F59E0B&text=NileGuide%20API&fontColor=ffffff&fontSize=52&fontAlignY=34&desc=Secure%20travel%20discovery%20backend%20for%20Egypt%20experiences&descAlignY=55&descSize=18&animation=fadeIn)
 
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-[![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-0A7EA4?style=for-the-badge&logo=dotnet&logoColor=white)](https://learn.microsoft.com/aspnet/core)
-[![SQL Server](https://img.shields.io/badge/SQL%20Server-EF%20Core-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)](https://learn.microsoft.com/ef/core/)
-[![JWT](https://img.shields.io/badge/Auth-JWT-111827?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
-[![Swagger](https://img.shields.io/badge/API-Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=111827)](https://swagger.io/)
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-0F172A?style=for-the-badge&logo=dotnet&logoColor=14B8A6)](https://dotnet.microsoft.com/)
+[![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-0369A1?style=for-the-badge&logo=dotnet&logoColor=white)](https://learn.microsoft.com/aspnet/core)
+[![EF Core](https://img.shields.io/badge/EF%20Core-SQL%20Server-14B8A6?style=for-the-badge&logo=microsoftsqlserver&logoColor=0F172A)](https://learn.microsoft.com/ef/core/)
+[![JWT](https://img.shields.io/badge/JWT-Secure%20Auth-F59E0B?style=for-the-badge&logo=jsonwebtokens&logoColor=0F172A)](https://jwt.io/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-0369A1?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-![Typing](https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=22&duration=2500&pause=900&color=14B8A6&center=true&vCenter=true&width=720&lines=Travel+discovery+API;JWT+authentication+and+refresh+tokens;Activities%2C+plans%2C+wishlists%2C+reviews;Admin+dashboard+and+SignalR+updates)
+![Typing](https://readme-typing-svg.demolab.com?font=Inter&weight=700&size=24&duration=2400&pause=750&color=14B8A6&center=true&vCenter=true&width=850&lines=Explore+Egypt+activities+with+a+clean+API;JWT+auth+with+refresh+token+rotation;Wishlists%2C+plans%2C+reviews%2C+profiles;Admin+reports+with+SignalR+dashboard+updates;Swagger-first+developer+experience)
+
+[![Status](https://img.shields.io/badge/status-active-14B8A6?style=flat-square)](#overview)
+[![API Docs](https://img.shields.io/badge/docs-swagger-F59E0B?style=flat-square)](#api-surface)
+[![Database](https://img.shields.io/badge/database-sql%20server-0369A1?style=flat-square)](#configuration)
+[![Repository](https://img.shields.io/badge/repository-source%20only-0F172A?style=flat-square)](#quality-bar)
+
+<a href="#overview">Overview</a> |
+<a href="#feature-map">Features</a> |
+<a href="#architecture">Architecture</a> |
+<a href="#api-surface">API</a> |
+<a href="#run-locally">Run Locally</a> |
+<a href="#docker">Docker</a>
 
 </div>
 
+![Divider](https://capsule-render.vercel.app/api?type=rect&height=4&color=0:0F172A,35:0369A1,70:14B8A6,100:F59E0B)
+
 ## Overview
 
-NileGuide API is the backend service for the NileGuide travel platform. It powers activity discovery, user authentication, profile preferences, wishlists, trip planning, reviews, reporting, newsletters, admin workflows, and realtime dashboard updates.
+NileGuide API is the ASP.NET Core backend behind the NileGuide travel platform. It provides the product layer for activity discovery, authentication, user profiles, wishlists, trip planning, reviews, reports, newsletters, and admin operations.
 
-The project is built as a production-oriented ASP.NET Core 8 Web API with typed configuration validation, Entity Framework Core migrations, SQL Server persistence, JWT bearer authentication, rate limiting, CORS, Swagger documentation, centralized exception handling, and Docker support.
+The codebase is designed as a production-facing Web API: typed options are validated at startup, EF Core migrations manage the SQL Server schema, JWT bearer auth protects private flows, rate limiting guards sensitive endpoints, Swagger documents the contract, and SignalR streams dashboard updates.
 
-## Highlights
+## Brand Palette
 
-| Capability | Details |
+| Token | Color | Usage |
+| --- | --- | --- |
+| Nile Midnight | `#0F172A` | Primary dark surface, security, admin tone |
+| Nile Blue | `#0369A1` | API/navigation identity |
+| Oasis Teal | `#14B8A6` | Success, realtime, discovery highlights |
+| Sun Gold | `#F59E0B` | Premium accent and callouts |
+
+## Feature Map
+
+| Product Area | What It Handles |
 | --- | --- |
-| Authentication | Registration, login, logout, refresh tokens, current user endpoint, password reset code flow |
-| Discovery | Activities, categories, cities, filtering, details, images, opening hours, booking links |
-| User features | Profiles, profile pictures, wishlists, trip plan items, reviews |
-| Admin features | Activity management, user management, dashboard metrics, reports, newsletter sending |
-| Platform services | SQL Server, EF Core migrations, JWT, MailKit SMTP, Cloudinary, SignalR |
-| Developer experience | Swagger UI, XML docs, typed options validation, Dockerfile, clean repository rules |
+| Authentication | Register, login, logout, refresh tokens, current user, password reset code flow |
+| Discovery | Activities, categories, cities, filters, details, images, hours, booking links |
+| User Workspace | Profile preferences, profile pictures, wishlists, trip plan items |
+| Social Proof | Activity reviews, reviewer metadata, rating aggregation support |
+| Admin Console | Activity CRUD, user management, dashboard metrics, reports, newsletter send |
+| Platform Services | SQL Server, EF Core migrations, JWT, MailKit, Cloudinary, SignalR, Swagger |
 
-## Tech Stack
+## Technology
 
-```text
-Runtime       .NET 8 / ASP.NET Core Web API
-Database      SQL Server / Azure SQL
-ORM           Entity Framework Core 8
-Auth          JWT bearer tokens + refresh token rotation
-Docs          Swagger / OpenAPI
-Realtime      SignalR
-Email         MailKit SMTP
-Media         Cloudinary
-Deployment    Docker-ready ASP.NET Core container
+<div align="center">
+
+[![Tech](https://skillicons.dev/icons?i=dotnet,cs,azure,docker,git,github)](https://skillicons.dev)
+
+</div>
+
+| Layer | Stack |
+| --- | --- |
+| Runtime | .NET 8, ASP.NET Core Web API |
+| Persistence | SQL Server or Azure SQL, Entity Framework Core 8 |
+| Security | JWT bearer tokens, refresh tokens, role-based admin policy |
+| Realtime | SignalR dashboard hub |
+| Email | MailKit SMTP |
+| Media | Cloudinary profile picture uploads |
+| Documentation | Swagger / OpenAPI with XML comments and operation filters |
+| Deployment | Docker-ready ASP.NET Core container |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Client["Web Client"] --> API["ASP.NET Core API"]
+    API --> Auth["JWT Auth + Rate Limits"]
+    API --> Services["Application Services"]
+    Services --> DB["SQL Server + EF Core"]
+    Services --> Mail["SMTP / MailKit"]
+    Services --> Media["Cloudinary"]
+    API --> Swagger["Swagger UI"]
+    API --> Hub["SignalR Dashboard Hub"]
+    Admin["Admin Console"] --> API
 ```
 
 ## Project Structure
@@ -56,15 +99,15 @@ NileGuideApi/
   Models/           Domain entities
   Options/          Typed configuration objects
   Services/         Business logic and integrations
-  Swagger/          Swagger filters and examples
+  Swagger/          Swagger filters and response examples
 ```
 
-## API Areas
+## API Surface
 
 | Area | Routes |
 | --- | --- |
 | Auth | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/refresh`, `POST /api/auth/logout` |
-| Password reset | `POST /api/auth/forgot-password`, `POST /api/auth/verify-reset-code`, `POST /api/auth/reset-password` |
+| Password Reset | `POST /api/auth/forgot-password`, `POST /api/auth/verify-reset-code`, `POST /api/auth/reset-password` |
 | Activities | `GET /api/activities`, `GET /api/activities/{id}` |
 | Reviews | `GET /api/activities/{activityId}/reviews`, `POST /api/activities/{activityId}/reviews` |
 | Lookups | `GET /api/categories`, `GET /api/cities` |
@@ -74,15 +117,19 @@ NileGuideApi/
 | Chat | `POST /api/chat/conversations`, `GET /api/chat/conversations`, `DELETE /api/chat/conversations/{conversationId}` |
 | Admin | `api/admin/activities`, `api/users`, `api/dashboard`, `api/reports/*`, `api/newsletter/send` |
 
+Swagger is available at:
+
+```text
+/swagger
+```
+
 ## Requirements
 
 - .NET SDK `8.0.420` or a compatible .NET 8 SDK
 - SQL Server or Azure SQL
 - EF Core CLI tools
-- SMTP account for email flows
-- Cloudinary account for profile image uploads
-
-Install EF Core tools if needed:
+- SMTP credentials for email flows
+- Cloudinary credentials for profile image uploads
 
 ```bash
 dotnet tool install --global dotnet-ef
@@ -90,57 +137,27 @@ dotnet tool install --global dotnet-ef
 
 ## Configuration
 
-The API validates required configuration at startup. Keep secrets out of committed files and use user secrets locally or environment variables in hosted environments.
+The API validates required configuration at startup. Do not commit real values, connection strings, credentials, tokens, provider keys, or production hostnames. Use local user secrets for development and environment variables in deployed environments.
 
-Required settings:
+| Section | Required Keys |
+| --- | --- |
+| `ConnectionStrings` | `DefaultConnection` |
+| `Jwt` | `Key`, `Issuer`, `Audience`, `AccessTokenMinutes`, `RefreshTokenDays`, `RefreshTokenRememberMeDays` |
+| `EmailSettings` | `SmtpServer`, `SmtpPort`, `SmtpUsername`, `SmtpPassword`, `FromEmail`, `FromName` |
+| `Security` | `ResetCodePepper` |
+| `Cloudinary` | `CloudName`, `ApiKey`, `ApiSecret` |
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=.;Database=NileGuideDb;Trusted_Connection=True;TrustServerCertificate=True"
-  },
-  "Jwt": {
-    "Key": "replace-with-a-strong-secret-at-least-32-bytes",
-    "Issuer": "NileGuideApi",
-    "Audience": "NileGuideClient",
-    "AccessTokenMinutes": 30,
-    "RefreshTokenDays": 1,
-    "RefreshTokenRememberMeDays": 30
-  },
-  "EmailSettings": {
-    "SmtpServer": "smtp.example.com",
-    "SmtpPort": 587,
-    "SmtpUsername": "username",
-    "SmtpPassword": "password",
-    "FromEmail": "no-reply@example.com",
-    "FromName": "NileGuide"
-  },
-  "Security": {
-    "ResetCodePepper": "replace-with-a-strong-pepper-at-least-32-bytes"
-  },
-  "Cloudinary": {
-    "CloudName": "cloud-name",
-    "ApiKey": "api-key",
-    "ApiSecret": "api-secret"
-  }
-}
+Use ASP.NET Core's double-underscore convention for environment variables:
+
+```text
+ConnectionStrings__DefaultConnection
+Jwt__Key
+Security__ResetCodePepper
+EmailSettings__SmtpPassword
+Cloudinary__ApiSecret
 ```
 
-Local user-secrets example:
-
-```bash
-cd NileGuideApi
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=.;Database=NileGuideDb;Trusted_Connection=True;TrustServerCertificate=True"
-dotnet user-secrets set "Jwt:Key" "replace-with-a-strong-secret-at-least-32-bytes"
-dotnet user-secrets set "Security:ResetCodePepper" "replace-with-a-strong-pepper-at-least-32-bytes"
-dotnet user-secrets set "EmailSettings:SmtpServer" "smtp.example.com"
-dotnet user-secrets set "EmailSettings:SmtpUsername" "username"
-dotnet user-secrets set "EmailSettings:SmtpPassword" "password"
-dotnet user-secrets set "EmailSettings:FromEmail" "no-reply@example.com"
-dotnet user-secrets set "Cloudinary:CloudName" "cloud-name"
-dotnet user-secrets set "Cloudinary:ApiKey" "api-key"
-dotnet user-secrets set "Cloudinary:ApiSecret" "api-secret"
-```
+For local development, set real values with `dotnet user-secrets` inside the API project and keep those values outside the repository.
 
 ## Run Locally
 
@@ -163,12 +180,6 @@ Run the API:
 dotnet run --project NileGuideApi/NileGuideApi.csproj
 ```
 
-Open Swagger from the URL printed by the app:
-
-```text
-/swagger
-```
-
 The application also runs pending EF Core migrations on startup when a valid database connection is configured.
 
 ## Authentication
@@ -183,18 +194,9 @@ Admin-only endpoints use the `AdminOnly` authorization policy, which requires th
 
 ## CORS
 
-The API currently allows these frontend origins:
-
-```text
-http://localhost:4200
-http://127.0.0.1:4200
-https://nileguide.online
-https://www.nileguide.online
-```
+The API is configured for known frontend origins in application configuration/code. Keep production domains environment-specific and avoid documenting private deployment targets in public repository files.
 
 ## Docker
-
-Build and run the API container:
 
 ```bash
 cd NileGuideApi
@@ -204,16 +206,21 @@ docker run -p 8080:8080 --env-file .env nileguide-api
 
 The container listens on port `8080`.
 
-## Quality Notes
+## Quality Bar
 
-- Central exception middleware keeps API error responses consistent.
-- Request validation returns a lightweight `{ message, errors }` response shape.
-- Rate limiting is enabled for registration, login, refresh, and reset flows.
-- Forwarded headers are supported for trusted reverse-proxy deployments.
-- Local artifacts, build outputs, IDE state, secrets, and scratch files are ignored.
+| Area | Implementation |
+| --- | --- |
+| Error handling | Central exception middleware returns consistent API errors |
+| Validation | Model validation uses a lightweight `{ message, errors }` shape |
+| Security | JWT validation, role policies, reset-code pepper, no committed secrets |
+| Resilience | SQL retry-on-failure for transient Azure SQL startup failures |
+| API contract | Swagger UI, XML comments, auth operation filters, response examples |
+| Repository hygiene | Build output, IDE state, local secrets, request samples, and scratch files are ignored |
 
 <div align="center">
 
-![Footer](https://capsule-render.vercel.app/api?type=waving&height=120&section=footer&color=0:14b8a6,100:0f172a)
+![Motion](https://readme-typing-svg.demolab.com?font=Inter&weight=700&size=18&duration=2200&pause=700&color=F59E0B&center=true&vCenter=true&width=760&lines=Built+for+clean+API+contracts;Designed+for+secure+travel+workflows;Ready+for+frontend+integration)
+
+![Footer](https://capsule-render.vercel.app/api?type=waving&height=140&section=footer&color=0:F59E0B,35:14B8A6,70:0369A1,100:0F172A)
 
 </div>
