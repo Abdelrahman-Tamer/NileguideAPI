@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NileGuideApi.Data;
 using NileGuideApi.DTOs;
@@ -12,15 +12,18 @@ namespace NileGuideApi.Services
         private readonly AppDbContext _context;
         private readonly IActivityImageService _activityImageService;
         private readonly IHubContext<DashboardHub> _hubContext;
+        private readonly IAiSyncService _aiSyncService;
 
         public AdminActivityService(
             AppDbContext context,
             IActivityImageService activityImageService,
-            IHubContext<DashboardHub> hubContext)
+            IHubContext<DashboardHub> hubContext,
+            IAiSyncService aiSyncService)
         {
             _context = context;
             _activityImageService = activityImageService;
             _hubContext = hubContext;
+            _aiSyncService = aiSyncService;
         }
 
         public async Task<PagedResultDto<AdminActivityDetailsDto>> GetAllAsync(ActivityFilterDto filter)
@@ -33,6 +36,7 @@ namespace NileGuideApi.Services
 
             var query = _context.Activities
                 .AsNoTracking()
+                .Where(x => x.DeletedAt == null)
                 .Include(x => x.Category)
                 .Include(x => x.City)
                 .Include(x => x.ActivityImages)
@@ -208,7 +212,19 @@ namespace NileGuideApi.Services
                 .Include(x => x.ActivityHours)
                 .FirstAsync(x => x.ActivityID == activity.ActivityID);
 
-            return MapToDetailsDto(createdActivity);
+            var result = MapToDetailsDto(createdActivity);
+            await _aiSyncService.SyncActivityAsync(
+                result.ActivityId,
+                result.ActivityName,
+                result.CityName,
+                result.CategoryName,
+                result.Price,
+                result.PriceCurrency,
+                result.Description,
+                result.Images.FirstOrDefault(x => x.IsPrimary)?.Url ?? result.Images.FirstOrDefault()?.Url ?? string.Empty,
+                result.IsActive
+            );
+            return result;
         }
 
         public async Task<AdminActivityDetailsDto> UpdateAsync(int id, UpdateActivityDto dto)
@@ -357,7 +373,19 @@ namespace NileGuideApi.Services
                 .Include(x => x.ActivityHours)
                 .FirstAsync(x => x.ActivityID == id && x.DeletedAt == null);
 
-            return MapToDetailsDto(updatedActivity);
+            var result = MapToDetailsDto(updatedActivity);
+            await _aiSyncService.SyncActivityAsync(
+                result.ActivityId,
+                result.ActivityName,
+                result.CityName,
+                result.CategoryName,
+                result.Price,
+                result.PriceCurrency,
+                result.Description,
+                result.Images.FirstOrDefault(x => x.IsPrimary)?.Url ?? result.Images.FirstOrDefault()?.Url ?? string.Empty,
+                result.IsActive
+            );
+            return result;
         }
 
         public async Task DeleteAsync(int id)
@@ -382,11 +410,13 @@ namespace NileGuideApi.Services
                 image.UpdatedAt = DateTime.UtcNow;
             }
 
+            activity.IsActive = false;
             activity.DeletedAt = DateTime.UtcNow;
             activity.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
             await _hubContext.Clients.All.SendAsync("ActivitiesUpdated");
+            await _aiSyncService.DeleteActivityAsync(id);
         }
 
         private static void ValidateActivityInput(
