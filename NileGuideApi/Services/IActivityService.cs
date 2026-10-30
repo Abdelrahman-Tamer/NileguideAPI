@@ -1,4 +1,4 @@
-﻿using NileGuideApi.DTOs;
+using NileGuideApi.DTOs;
 
 namespace NileGuideApi.Services
 {
@@ -7,5 +7,9 @@ namespace NileGuideApi.Services
         Task<PagedResultDto<ActivityCardDto>> GetActivitiesAsync(ActivityFilterDto filter);
 
         Task<ActivityDetailsDto?> GetActivityByIdAsync(int id);
+
+        Task<List<ActivityCardDto>> GetActivitiesBatchAsync(List<int> ids);
+
+        Task<bool> RecordViewAsync(int id);
     }
 }

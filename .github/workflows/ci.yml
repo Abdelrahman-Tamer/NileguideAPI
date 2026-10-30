@@ -1,0 +1,40 @@
+name: CI - NileGuide Core API
+
+on:
+  push:
+    branches:
+      - main
+      - 'fix/*'
+      - 'feature/*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Test and Build .NET API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@6bd8fc32d80461cc427d44ae4d87612c5dc77db5 # v4.1.0
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore NileGuideApi/NileGuideApi.csproj
+
+      - name: Run Automated Unit Tests (xUnit)
+        run: dotnet test NileGuideApi.Tests/NileGuideApi.Tests.csproj --configuration Release --verbosity normal
+
+      - name: Build Release Package
+        run: dotnet build NileGuideApi/NileGuideApi.csproj --configuration Release --no-restore
