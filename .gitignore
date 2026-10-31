@@ -428,3 +428,5 @@ wwwroot/Uploads/
 !appsettings.json
 !.gitattributes
 !.gitignore
+
+appsettings.Production.json

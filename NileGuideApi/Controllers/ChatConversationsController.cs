@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NileGuideApi.Data;
 using NileGuideApi.Models;
+using NileGuideApi.Services;
 using System.Security.Claims;
 
 namespace NileGuideApi.Controllers
@@ -20,10 +21,12 @@ namespace NileGuideApi.Controllers
         private const int MaxConversationIdLength = 200;
 
         private readonly AppDbContext _context;
+        private readonly IAiSyncService _aiSyncService;
 
-        public ChatConversationsController(AppDbContext context)
+        public ChatConversationsController(AppDbContext context, IAiSyncService aiSyncService)
         {
             _context = context;
+            _aiSyncService = aiSyncService;
         }
 
         [HttpPost]
@@ -113,6 +116,7 @@ namespace NileGuideApi.Controllers
 
             _context.ChatConversations.Remove(conversation);
             await _context.SaveChangesAsync(cancellationToken);
+            await _aiSyncService.DeleteConversationHistoryAsync(conversationId);
 
             return NoContent();
         }
